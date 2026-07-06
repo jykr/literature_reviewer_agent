@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recent Computational Biology Review Queue</title>
+<style>
+:root{
+  --bg:#f6f7f9; --card:#fff; --ink:#1a1d21; --muted:#5b6570; --line:#e3e7ec;
+  --accent:#2b6cb0; --accent-soft:#e8f0f8;
+  --important:#c0392b; --further:#b7791f; --done:#2f855a;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-size:15px;line-height:1.5;overflow-x:hidden}
+a{color:var(--accent)}
+header.top{padding:20px 24px 12px;border-bottom:1px solid var(--line);background:var(--card)}
+header.top h1{margin:0 0 4px;font-size:22px}
+header.top .sub{color:var(--muted);margin:0 0 8px}
+header.top .crit{color:var(--muted);font-size:13px;max-width:70ch}
+.controls{position:sticky;top:0;z-index:10;display:flex;gap:12px;align-items:center;
+  flex-wrap:wrap;padding:10px 24px;background:var(--card);border-bottom:1px solid var(--line)}
+.controls label{font-size:13px;color:var(--muted)}
+.controls select,.controls input[type=search]{
+  font:inherit;padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.controls input[type=search]{min-width:200px}
+.btn{font:inherit;cursor:pointer;padding:5px 10px;border:1px solid var(--line);
+  border-radius:8px;background:#fff;color:var(--ink)}
+.btn:hover{background:var(--accent-soft)}
+.counts{color:var(--muted);font-size:13px;margin-left:auto}
+.tagfilter{font-size:13px;color:var(--ink)}
+.tagfilter .clear{cursor:pointer;color:var(--accent);margin-left:6px}
+.layout{display:flex;align-items:flex-start;gap:20px;padding:16px 24px;max-width:1400px}
+.sidebar{width:280px;flex:0 0 280px;position:sticky;top:56px;max-height:calc(100vh - 72px);
+  overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px}
+.sidebar h2{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:4px 6px 8px}
+.sidebar ol{list-style:none;margin:0;padding:0}
+.sidebar li{display:flex;gap:8px;align-items:flex-start;padding:6px;border-radius:8px;cursor:pointer}
+.sidebar li:hover{background:var(--accent-soft)}
+.sidebar .s-title{font-size:13px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar .s-sub{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.main{flex:1 1 auto;min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-left:4px solid transparent;
+  border-radius:12px;padding:16px 18px;margin:0 0 16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.card.st-important{border-left-color:var(--important)}
+.card.st-further{border-left-color:var(--further)}
+.card.st-done{border-left-color:var(--done);opacity:.6}
+.chip{display:inline-block;font-size:11px;font-weight:700;color:#fff;background:var(--accent);
+  border-radius:6px;padding:1px 7px;vertical-align:middle}
+.hrow{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.hrow h3{margin:0;font-size:17px}
+.hrow h3 a{text-decoration:none}
+.meta{color:var(--muted);font-size:13px}
+.badge{display:inline-block;font-size:11px;border:1px solid var(--line);border-radius:6px;
+  padding:1px 6px;color:var(--muted)}
+.scores{font-size:13px;color:var(--muted);margin-top:2px}
+.tagrow{margin:10px 0 4px;display:flex;gap:6px;flex-wrap:wrap}
+.tag{cursor:pointer;font-size:11px;border-radius:20px;padding:2px 9px;border:1px solid transparent}
+.tag.app{background:#e8f0f8;color:#255e91}
+.tag.method{background:#efeafc;color:#5b3fa8}
+.tag.sel{outline:2px solid var(--accent);outline-offset:1px}
+.statusbar{display:flex;gap:8px;align-items:center;margin:10px 0;flex-wrap:wrap}
+.sbtn{font:inherit;font-size:12px;cursor:pointer;border:1px solid var(--line);border-radius:20px;
+  padding:3px 10px;background:#fff;color:var(--ink)}
+.sbtn.on-important{background:var(--important);color:#fff;border-color:var(--important)}
+.sbtn.on-further{background:var(--further);color:#fff;border-color:var(--further)}
+.sbtn.on-done{background:var(--done);color:#fff;border-color:var(--done)}
+.copy{margin-left:auto}
+.why{background:#eef8f0;border:1px solid #cdebd4;border-radius:8px;padding:8px 12px;margin:6px 0 4px;
+  font-size:14px}
+.why b{color:var(--done)}
+dl{display:grid;grid-template-columns:150px 1fr;gap:6px 16px;margin:12px 0 0}
+dl dt{font-weight:700;color:var(--muted);font-size:13px}
+dl dd{margin:0}
+dl dd ul{margin:4px 0;padding-left:18px}
+.algo{display:inline-block;background:#1f2733;color:#fff;font-size:12px;border-radius:6px;padding:2px 9px}
+.gauge{display:inline-flex;align-items:center;gap:8px;margin-left:8px;vertical-align:middle}
+.gtrack{position:relative;width:120px;height:8px;border-radius:6px;
+  background:linear-gradient(90deg,#c9ccd1,#7c5bd0)}
+.gmark{position:absolute;top:-3px;width:14px;height:14px;background:#fff;border:2px solid #5b3fa8;
+  border-radius:50%;transform:translateX(-50%)}
+.glabel{font-size:12px;color:var(--muted)}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1f2733;color:#fff;
+  padding:10px 16px;border-radius:8px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:50}
+.toast.show{opacity:1}
+@keyframes flashring{0%{box-shadow:0 0 0 0 rgba(43,108,176,.6)}100%{box-shadow:0 0 0 8px rgba(43,108,176,0)}}
+.flash{animation:flashring .9s ease-out 2}
+@media(max-width:900px){.sidebar{display:none}}
+@media(max-width:560px){dl{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Recent Computational Biology Review Queue</h1>
+  <p class="sub">Ranked, taggable triage of recent papers &mdash; tailored to: <em>This researcher is focused on computational biology, using advanced machine learning, specifically DNA language models, for functional genomics, including variant effect prediction. They also apply methods to single-cell data for systems-level analysis, such as inferring gene regulatory networks (GRNs). (Derived only from provided topics.)</em></p>
+  <p class="crit">Ranked by a blend of field impact, relevance to your work, and author/venue
+    credibility. Scores are editorial judgments, not computed. Tag papers and copy clean notes
+    into your note app. Generated .</p>
+</header>
+
+<div class="controls">
+  <label>Show
+    <select id="filter">
+      <option value="all">All</option>
+      <option value="important">Important</option>
+      <option value="further">Read further</option>
+      <option value="done">Done</option>
+      <option value="untagged">Untagged</option>
+    </select>
+  </label>
+  <label>Sort
+    <select id="sort">
+      <option value="rank">Rank</option>
+      <option value="impact">Field impact</option>
+      <option value="rel">Relevance to me</option>
+      <option value="venue">Venue A&ndash;Z</option>
+      <option value="status">Status</option>
+    </select>
+  </label>
+  <input id="search" type="search" placeholder="Search title, author, venue, tags&hellip;">
+  <button class="btn" id="copyview">&#8681; Copy view for OneNote</button>
+  <span class="tagfilter" id="tagfilter"></span>
+  <span class="counts" id="counts"></span>
+</div>
+
+<div class="layout">
+  <aside class="sidebar">
+    <h2 id="sidehead">Papers</h2>
+    <ol id="sidelist"></ol>
+  </aside>
+  <main class="main" id="list"></main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script id="data" type="application/json">[{"rank": 1, "title": "Benchmarking DNA foundation models for genomic and genetic tasks", "authors": "Haonan Feng, ..., Chong Wu", "institution": "The University of Texas MD Anderson Cancer Center", "venue": "Nature Communications", "date": "Nov 2025", "url": "https://doi.org/10.1038/s41467-025-65823-8", "insights": "New metric: None specified, relies on AUC/AUPRC on standard prediction tasks. New eval data: Comprehensive, standardized dataset suite covering variant effect prediction and regulatory tasks. Design & novelty: Systematic comparison of diverse pre-trained DNA foundation models to evaluate generalization capabilities. Eval limits: Benchmarking tasks are defined by existing biological knowledge bases, which may limit discovery of novel sequence functions.", "limitation": "Lack of standardized and systematic evaluation protocols for comparing generalization and transferability across the rapidly expanding landscape of DNA foundation models.", "resources": "", "comments": "Essential reading. This paper defines the current landscape for DNA foundation models, providing crucial performance metrics and highlighting where these models succeed or fail on diverse genomic prediction tasks, including variant effects.", "relevance": "Provides a crucial state-of-the-art overview and direct comparison (benchmarking) of the core method (DNA language models) applied to the core problem (variant effect prediction).", "impact": 9, "rel": 10}, {"rank": 2, "title": "Evaluating the representational power of pre-trained DNA language models for regulatory genomics", "authors": "Ziqi Tang, ..., Peter K. Koo", "institution": "Cold Spring Harbor Laboratory", "venue": "Genome biology", "date": "Jul 2025", "url": "https://doi.org/10.1186/s13059-025-03674-8", "insights": "New metric: Focuses on linear probe evaluation using embeddings. New eval data: Regulatory elements and variant data derived from MPRAs and large epigenomic datasets. Design & novelty: Novel framework for quantifying the intrinsic biological information captured in the latent space of pre-trained DLMs. Eval limits: Reliance on simple linear classifiers (linear probing) might underestimate the information captured by complex, non-linear relationships.", "limitation": "The lack of understanding regarding what biological information is actually captured and encoded within the latent representations of pre-trained DLMs.", "resources": "", "comments": "Highly theoretical and methodologically relevant. This work provides tools and insights for the researcher to analyze and interpret their own DLM architectures for functional genomics.", "relevance": "Core DLM research, focusing on the fundamental mechanism: evaluating the biological coherence and utility of sequence representations (embeddings) for regulatory tasks and variant effect prediction.", "impact": 8, "rel": 9}, {"rank": 3, "title": "Prior-Guided Multi-Omic Transformers for Single-Cell Gene Regulatory Network Inference", "authors": "Tianyang Xu, ..., Jing Gao", "institution": "Not explicitly stated by tool", "venue": "arXiv preprint", "date": "May 2026", "url": "https://doi.org/10.48550/arxiv.2606.00685", "insights": "New metric: Tested on accuracy improvement enabled by multi-omic fusion. New eval data: Single-cell multi-omic data (scRNA-seq and scATAC-seq/epigenomics). Design & novelty: Highly novel Transformer architecture tailored to fuse multiple single-cell omic layers and explicitly incorporate biological prior knowledge. Eval limits: The quality and scope of the prior knowledge used significantly influences the model's performance and robustness.", "limitation": "GRN inference methods often fail to holistically integrate diverse single-cell molecular data layers (multi-omics) and leverage existing biological knowledge.", "resources": "", "comments": "Addresses a key frontier in scGRN: utilizing advanced deep learning (Transformers) to effectively integrate multimodal data and biological priors. High methodological relevance.", "relevance": "Highly relevant as it combines state-of-the-art deep learning (Transformers, similar to DLMs) with the secondary core topic (scGRN inference), specifically focusing on multi-omics integration.", "impact": 7, "rel": 9}, {"rank": 4, "title": "scTFBridge: a disentangled deep generative model informed by TF-motif binding for gene regulation inference in single-cell multi-omics", "authors": "Feng‐ao Wang, ..., Yixue Li", "institution": "University of Chinese Academy of Sciences", "venue": "Nature Communications", "date": "Oct 2025", "url": "https://doi.org/10.1038/s41467-025-64227-y", "insights": "New metric: Focuses on validation against established TF-target interactions and cell-type-specific performance. New eval data: Single-cell multi-omics data (scRNA-seq and scATAC-seq or related modalities). Design & novelty: Uses a disentangled deep generative model informed by TF-motif binding, allowing separate modeling of different regulatory sources. Eval limits: Generative model design complexity may limit practical application and increase training difficulty.", "limitation": "Existing scGRN methods struggle to accurately integrate cis-regulatory information (like TF-motif binding) with expression data in a unified, cell-type-specific manner.", "resources": "", "comments": "A cutting-edge approach combining deep generative modeling with multi-omics integration for GRN inference, published in a top-tier venue. High novelty for the GRN axis.", "relevance": "Applies novel deep learning architecture (disentangled generative model) to accurately infer complex, context-specific GRNs from multi-omics single-cell data.", "impact": 7, "rel": 8}, {"rank": 5, "title": "Epiregulon: Single-cell transcription factor activity inference to predict drug response and drivers of cell states", "authors": "Tomasz Włodarczyk, ..., Xiaosai Yao", "institution": "Genomic Health (United States)", "venue": "Nature Communications", "date": "Aug 2025", "url": "https://doi.org/10.1038/s41467-025-62252-5", "insights": "New metric: Validation through successful prediction of drug response outcomes. New eval data: Single-cell RNA-seq datasets from cancer models linked to drug response. Design & novelty: Novel method for inferring context-specific TF activity by linking regulatory element information directly to scRNA-seq expression profiles. Eval limits: The method's success is dependent on the quality of regulatory element annotations used as input.", "limitation": "Traditional GRN inference provides static networks; a method is needed to quantify dynamic, cell-state-specific Transcription Factor (TF) activities relevant to clinical outcomes.", "resources": "", "comments": "Excellent paper showing a clear application of single-cell regulatory inference to a major biological problem (cancer and drug response). Strong Nature Communications venue.", "relevance": "A highly relevant application for single-cell systems analysis, moving from network inference to functional prediction of TF drivers in disease states, which is critical for systems-level understanding.", "impact": 8, "rel": 8}, {"rank": 6, "title": "Predicting functional constraints across evolutionary timescales with phylogeny-informed genomic language models", "authors": "Chengzhong Ye, ..., Yun S. Song", "institution": "University of California, Berkeley", "venue": "bioRxiv", "date": "Sep 2025 (bioRxiv Sep 2025)", "url": "https://doi.org/10.1101/2025.09.21.677619", "insights": "New metric: Prediction performance assessed against established metrics of functional constraint (e.g., GERP scores). New eval data: Multi-species whole-genome alignments and large-scale genetic variation data. Design & novelty: Novel integration of explicit evolutionary conservation and phylogenetic relationships into the DLM architecture. Eval limits: The accuracy is reliant on high-quality multi-species alignments and the inherent biases of conservation scoring methods.", "limitation": "Current DLMs often fail to explicitly leverage deep evolutionary information, which is critical for distinguishing functionally important variants and elements.", "resources": "", "comments": "This bridges DLMs with evolutionary genomics, suggesting a clear path toward enhancing VEP capabilities by focusing on deep functional constraint.", "relevance": "Highly relevant as it pushes the methodological boundary of DLMs by integrating an external biological principle (evolutionary conservation) directly into the sequence modeling task for variant effect prediction.", "impact": 6, "rel": 9}, {"rank": 7, "title": "Cross-species modeling of plant genomes at single-nucleotide resolution using a pretrained DNA language model", "authors": "Jingjing Zhai, ..., Volodymyr Kuleshov", "institution": "Cornell University", "venue": "Proceedings of the National Academy of Sciences", "date": "Jun 2025", "url": "https://doi.org/10.1073/pnas.2421738122", "insights": "New metric: Focus on demonstrating cross-species generalization ability. New eval data: Large-scale genomic data from multiple diverse plant species (Arabidopsis, rice, etc.). Design & novelty: Application and validation of a single DLM for functional prediction (VEP, regulatory elements) across highly divergent species. Eval limits: While methodologically sound, the application domain is plant biology, requiring translational effort for human genomics.", "limitation": "Genomic models typically lack transferability across species, demanding species-specific training for functional annotation and VEP.", "resources": "", "comments": "Exceptional demonstration of the power of DNA LMs for generalization and transfer learning across diverse species, a key advantage of the foundation model approach.", "relevance": "Illustrates the generalization and transfer learning capacities of DLMs, principles directly applicable to developing robust VEP models for diverse genomic contexts.", "impact": 8, "rel": 7}, {"rank": 8, "title": "GRANet: a graph residual attention network for gene regulatory network inference", "authors": "Junliang Zhou, ..., Hao Wu", "institution": "Chongqing University of Posts and Telecommunications", "venue": "Briefings in Bioinformatics", "date": "Jul 2025", "url": "https://doi.org/10.1093/bib/bbaf349", "insights": "New metric: None specified, uses standard GRN metrics (AUPRC/AUROC). New eval data: Benchmark scRNA-seq datasets (e.g., DREAM challenges). Design & novelty: Uses an advanced Graph Residual Attention Network (GNN) to better model complex, non-linear regulatory relationships and handle data sparsity. Eval limits: Demonstrates superior performance on benchmarks, but the biological interpretation of complex GNN attention weights can be difficult.", "limitation": "Inference of GRNs from noisy and sparse scRNA-seq data is hindered by the inability of traditional methods to capture complex non-linear regulatory interactions.", "resources": "", "comments": "Strong methodological paper applying an advanced Graph Neural Network variant (GRANet) to the core challenge of scGRN inference.", "relevance": "Directly addresses the methodological needs of the secondary core topic (scGRN inference) by employing state-of-the-art deep learning models (GNNs with attention).", "impact": 6, "rel": 7}, {"rank": 9, "title": "Reaping the Fruits of LLM Pruning: Towards Small Language Models for Efficient Non-Coding Variant Effect Prediction", "authors": "Megha Hegde, ..., Farzana Rahman", "institution": "Kingston University", "venue": "Genes", "date": "Nov 2025", "url": "https://doi.org/10.3390/genes16111358", "insights": "New metric: Focuses on model size reduction and inference speed metrics alongside accuracy maintenance. New eval data: Large-scale non-coding variant data. Design & novelty: Application of model pruning and quantization techniques to DNA LMs to drastically improve computational efficiency while minimizing performance loss. Eval limits: The methodology primarily targets non-coding variants; performance efficiency on other tasks may vary.", "limitation": "The massive computational overhead of state-of-the-art DNA language models (LLMs) hinders their deployment for rapid, genome-wide variant screening.", "resources": "", "comments": "Addresses the crucial engineering challenge of deploying large genomic AI models efficiently. Essential for transitioning DLM research from theoretical modeling to practical, large-scale application.", "relevance": "Focuses on the scalability and efficiency of DLMs for VEP, a necessary next step after successful model development.", "impact": 6, "rel": 8}, {"rank": 10, "title": "Assessment of ability of a DNA language model to predict pathogenicity of rare coding variants", "authors": "David Curtis", "institution": "The London College", "venue": "Journal of Human Genetics", "date": "Aug 2025", "url": "https://doi.org/10.1038/s10038-025-01385-3", "insights": "New metric: None specified, uses standard classification metrics (AUC, sensitivity). New eval data: Curated set of rare coding variants with clinical classifications (e.g., ClinVar). Design & novelty: Direct application and validation of DLMs against traditional methods for the challenging task of classifying rare coding variants. Eval limits: Performance gain is specific to rare variants; overall population performance may be similar to established tools.", "limitation": "Traditional VEP methods struggle to accurately classify rare variants due to a lack of conservation signal or population co-occurrence data.", "resources": "", "comments": "A targeted application showing the utility of DLMs in clinical genomics, focusing on the high-impact problem of rare variant pathogenicity.", "relevance": "Directly tackles a high-priority application: variant effect prediction, specifically demonstrating DLM power in the challenging domain of rare clinical variants.", "impact": 5, "rel": 9}, {"rank": 11, "title": "CaHoT-GRN: context-aware high-order topology learning for robust single-cell gene regulatory network inference", "authors": "Dengju Yao, ..., Ning Liang", "institution": "Harbin University of Science and Technology", "venue": "Briefings in Bioinformatics", "date": "Mar 2026", "url": "https://doi.org/10.1093/bib/bbag202", "insights": "New metric: Focuses on robustness against noise and identification of complex regulatory motifs. New eval data: Standard scRNA-seq data. Design & novelty: Introduces context-aware high-order topology learning to model regulatory relationships beyond simple pairwise links. Eval limits: High-order interactions are fundamentally difficult to validate experimentally, potentially limiting biological verification.", "limitation": "Existing scGRN inference methods often focus only on pairwise interactions, failing to capture complex, non-linear, and context-dependent regulatory relationships.", "resources": "", "comments": "Advances GRN inference methodology by tackling the complexity of regulatory interactions beyond simple direct links, focusing on topology and context.", "relevance": "Methodological advancement in the single-cell GRN topic, specializing in learning complex network topologies relevant for systems biology.", "impact": 5, "rel": 7}, {"rank": 12, "title": "PlantCAD2: a DNA foundation model for interpreting genomes across flowering plants", "authors": "Jingjing Zhai, ..., Edward S. Buckler", "institution": "Cornell University", "venue": "bioRxiv (Cold Spring Harbor Laboratory)", "date": "Sep 2025 (bioRxiv Aug 2025)", "url": "https://doi.org/10.1101/2025.08.27.672609", "insights": "New metric: Evaluates zero-shot and few-shot performance on multiple downstream tasks. New eval data: Genomic sequence data spanning thousands of accessions and hundreds of species of flowering plants. Design & novelty: Construction of PlantCAD2, a massive foundation model trained on diverse plant genomes for general-purpose feature extraction. Eval limits: Utility is indirect for human functional genomics, serving primarily as a methodological blueprint.", "limitation": "Functional annotation and genomic interpretation remain challenging and fragmented across the vast and diverse genomes of the plant kingdom.", "resources": "", "comments": "Confirms the viability and power of the Foundation Model paradigm for sequence interpretation and generalization, even outside of human genomics.", "relevance": "Reinforces the architectural choices and training methodologies required to build massive, general-purpose DNA foundation models relevant to the researcher's focus on functional genomics.", "impact": 6, "rel": 7}]</script>
+<script>
+const TAGS = {"1": {"app": ["Variant effect prediction", "Functional genomics", "Regulatory element prediction"], "method": ["DNA foundation model", "Benchmarking", "Deep learning genomics"]}, "2": {"app": ["Regulatory genomics", "Variant effect prediction", "Functional genomics"], "method": ["DNA language model", "Representational learning", "Embedding analysis", "Deep learning genomics"]}, "3": {"app": ["Gene Regulatory Network Inference", "Multi-Omics Integration", "scRNA-seq"], "method": ["Transformer", "Multi-Modal Deep Learning", "Prior Knowledge Integration"]}, "4": {"app": ["Gene Regulatory Network Inference", "Single-Cell Multi-omics", "Cell Type Specificity"], "method": ["Deep Generative Model", "GRN Inference", "Disentanglement"]}, "5": {"app": ["Gene Regulatory Network Inference", "Single-Cell RNA-seq", "Cancer Systems Biology", "Drug Response Prediction"], "method": ["Transcription Factor Activity", "Regulatory Network Inference"]}, "6": {"app": ["Variant effect prediction", "Functional constraints", "Evolutionary genomics", "Pathogenicity prediction"], "method": ["DNA language model", "Phylogenetic modeling", "Genomic sequence model"]}, "7": {"app": ["Variant effect prediction", "Functional genomics", "Cross-species prediction"], "method": ["DNA language model", "Transfer learning", "Deep learning"]}, "8": {"app": ["Gene Regulatory Network Reconstruction", "Regulatory Dynamics", "scRNA-seq"], "method": ["Graph Neural Network", "Attention Mechanism", "Deep Learning"]}, "9": {"app": ["Non-Coding Variant Effect Prediction", "Model Efficiency", "Genomic AI Deployment"], "method": ["DNA Language Model", "Model Pruning", "Efficient AI"]}, "10": {"app": ["Variant effect prediction", "Pathogenicity prediction", "Clinical genomics"], "method": ["DNA Language Model", "Sequence Classification"]}, "11": {"app": ["Gene Regulatory Network Inference", "Cell Type Specificity", "Regulatory Dynamics"], "method": ["Topology Learning", "Context-Aware Modeling", "Robust Inference"]}, "12": {"app": ["Plant Functional Genomics", "Foundation Model", "Genomic Interpretation"], "method": ["DNA Language Model", "Foundation Model", "Transformer Model"]}};
+const APPROACH = {"1": {"algo": "Genomics-FM-Bench (Benchmarking Suite)", "nov": 10, "aim": "Determine which DNA foundation models generalize best across diverse genomic tasks. Limitation addressed: Lack of systematic, standardized comparison across diverse genomic tasks.", "data": "Comprehensive suite of public genomic and genetic datasets covering sequence-to-function, regulatory element prediction, and variant effect prediction.", "model": "Engineering effort evaluating existing large pre-trained DNA language models (e.g., DNABERT, Nucleus) using zero-shot, few-shot, and fine-tuning methods.", "bio": "Which DNA foundation models generalize best across a variety of genomic and genetic prediction tasks, and how should they be applied for functional genomics?"}, "2": {"algo": "Embedding Analysis and Linear Probe Framework", "nov": 40, "aim": "Quantify the biological information encoded in DLM embeddings. Limitation addressed: DLMs are black boxes; need to assess if their representations capture meaningful biological signals.", "data": "Regulatory elements and variant data derived from massively parallel reporter assays (MPRAs) and large-scale public epigenomic datasets (e.g., ENCODE).", "model": "Analyzes the latent space representations (embeddings) generated by several pre-trained DNA language models to quantify the biological information relevant to gene regulation.", "bio": "To what extent do the learned representations of DNA language models encode meaningful biological information relevant to gene regulation and regulatory variant function?"}, "3": {"algo": "Prior-Guided Multi-Omic Transformer", "nov": 75, "aim": "Holistically integrate diverse single-cell molecular data and existing knowledge to construct comprehensive GRNs. Limitation addressed: Traditional GRN inference struggles to fuse multi-omics data and leverage existing biological knowledge effectively.", "data": "Single-cell multi-omic data (e.g., scRNA-seq and scATAC-seq/epigenomics).", "model": "A Transformer architecture designed to fuse information from different single-cell omic layers while incorporating biological prior knowledge (e.g., known TF-target interactions) to guide network learning.", "bio": "How to holistically integrate diverse single-cell molecular data and existing knowledge to construct more comprehensive and biologically realistic GRNs."}, "4": {"algo": "scTFBridge (Disentangled Deep Generative Model)", "nov": 70, "aim": "Accurately and robustly infer cell-type-specific GRNs by integrating single-cell multi-omics data with prior TF-motif knowledge. Limitation addressed: Difficulty in integrating cis-regulatory information (TF motifs) directly into GRN reconstruction while modeling sparsity.", "data": "Single-cell multi-omics data (scRNA-seq and scATAC-seq or related modalities).", "model": "A deep generative model integrating transcriptional data with cis-regulatory information using a disentanglement approach to separately model different sources of regulatory control.", "bio": "How can a deep generative framework effectively integrate single-cell multi-omics data with prior knowledge (TF-motif binding) to accurately and robustly infer cell-type-specific gene regulatory networks?"}, "5": {"algo": "Epiregulon", "nov": 60, "aim": "Infer context-specific TF activity drivers in cell states. Limitation addressed: Need to quantify TF activity dynamically and link it to functional outcomes like drug response.", "data": "Single-cell RNA-seq datasets from cancer models and patient samples, integrated with known regulatory interactions and epigenetic data.", "model": "Infers context-specific TF activity by integrating regulatory element information with single-cell gene expression profiles, enabling cell-state-specific quantification.", "bio": "How can single-cell data be effectively leveraged to infer cell-state-specific transcription factor activities and identify regulatory drivers of complex biological processes like drug resistance?"}, "6": {"algo": "Phylogeny-Informed Genomic Language Model (PLM)", "nov": 60, "aim": "Enhance the prediction of functional constraints and deleterious genetic variants by integrating evolutionary data. Limitation addressed: DLMs often lack explicit modeling of evolutionary constraints, crucial for identifying functionally important elements.", "data": "Multi-species whole-genome alignments and large-scale genetic variation data.", "model": "A genomic language model adapted to explicitly incorporate evolutionary conservation and phylogenetic relationships, aiming to improve the detection of functionally constrained elements.", "bio": "How can evolutionary information be integrated into genomic language models to enhance the prediction of functional constraints and deleterious genetic variants?"}, "7": {"algo": "Pretrained DNA Language Model (PLM)", "nov": 50, "aim": "Learn and transfer functional genomic knowledge across diverse species at single-nucleotide resolution. Limitation addressed: Lack of transferability of functional genomic models across species.", "data": "Large-scale genomic data from multiple plant species (e.g., Arabidopsis, rice).", "model": "A DNA language model trained on diverse plant genomes and fine-tuned for downstream tasks, demonstrating generalization across species and genomic contexts.", "bio": "Can a single DNA language model effectively learn and transfer functional genomic knowledge across diverse plant species at single-nucleotide resolution?"}, "8": {"algo": "GRANet (Graph Residual Attention Network)", "nov": 50, "aim": "Enhance the accuracy and robustness of GRN inference from noisy and sparse scRNA-seq data. Limitation addressed: Sparsity and noise inherent in scRNA-seq limit the capacity of inference methods to model non-linear relationships.", "data": "Benchmark single-cell RNA-seq datasets (e.g., DREAM challenges, synthetic and real-world scRNA-seq data).", "model": "A deep learning model using a graph structure with residual connections and an attention mechanism to weigh regulatory influences, capturing complex non-linear relationships.", "bio": "Can advanced graph neural networks enhance the accuracy and robustness of gene regulatory network inference from noisy and sparse single-cell RNA sequencing data?"}, "9": {"algo": "Model Pruning and Quantization", "nov": 40, "aim": "Minimize the computational overhead of state-of-the-art DNA language models for efficient non-coding variant screening. Limitation addressed: Large DLMs are resource-intensive, hindering genome-wide screening and real-time application.", "data": "Large-scale non-coding variant data, including eQTLs and predicted regulatory region variants.", "model": "Applies pruning techniques to a large DNA language model to create a computationally efficient Small Language Model (SLM) for non-coding variant effect prediction.", "bio": "How can the computational overhead of state-of-the-art DNA language models be minimized to facilitate rapid, genome-wide non-coding variant screening in resource-limited settings?"}, "10": {"algo": "DNA-LM fine-tuned for pathogenicity scoring", "nov": 30, "aim": "Accurately predict the pathogenicity of rare coding variants. Limitation addressed: Traditional VEP tools often fail on rare variants due to lack of co-occurrence or conservation data.", "data": "Rare coding variants with clinical classifications, sourced from public and proprietary clinical databases.", "model": "A specific DNA language model is adapted to predict the probability of a rare coding variant being pathogenic, leveraging context-aware sequence embeddings.", "bio": "Can the context-aware nature of DNA language models improve the accuracy of pathogenicity predictions for rare missense and nonsense variants?"}, "11": {"algo": "CaHoT-GRN", "nov": 65, "aim": "Capture complex, non-linear, and context-dependent regulatory relationships in single-cell data. Limitation addressed: Failure of traditional methods to model high-order and context-specific regulatory links.", "data": "scRNA-seq data.", "model": "A method that learns complex, high-order topological relationships in the GRN, acting as 'context-aware' inference based on specific cellular states or types.", "bio": "How to capture complex, non-linear, and context-dependent regulatory relationships that govern cell fate decisions from single-cell data."}, "12": {"algo": "PlantCAD2 DNA Foundation Model", "nov": 50, "aim": "Accelerate discovery and functional annotation across the vast and diverse genomes of the flowering plant kingdom. Limitation addressed: Need for comprehensive, general-purpose feature extractors for non-human genomics.", "data": "Genomic sequence data spanning thousands of accessions and hundreds of species of flowering plants (Angiosperms).", "model": "A massive-scale DNA foundation model trained using a self-supervised task, designed to serve as a general-purpose feature extractor for diverse applications.", "bio": "Can a unified foundation model approach accelerate discovery and functional annotation across the vast and diverse genomes of the flowering plant kingdom?"}};
+const DATA = JSON.parse(document.getElementById('data').textContent);
+DATA.forEach(p => { const t = TAGS[p.rank] || {app:[],method:[]}; p.app = t.app||[]; p.method = t.method||[]; });
+
+const EVAL_LABELS = ['New metric:','New eval data:','Design & novelty:','Eval limits:'];
+const STORE = 'compbio-review-status-v1';
+let status = {};
+try { status = JSON.parse(localStorage.getItem(STORE)) || {}; } catch(e){ status = {}; }
+function saveStatus(){ localStorage.setItem(STORE, JSON.stringify(status)); }
+
+let tagFilter = null; // {val, kind}
+
+const esc = s => (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function linkify(s){
+  return esc(s).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+}
+
+function tagChips(p){
+  const a = (p.app||[]).map(v=>chip(v,'app'));
+  const m = (p.method||[]).map(v=>chip(v,'method'));
+  return a.concat(m).join('');
+}
+function chip(val, kind){
+  const sel = tagFilter && tagFilter.val===val && tagFilter.kind===kind ? ' sel':'';
+  return `<span class="tag ${kind}${sel}" data-tag="${esc(val)}" data-kind="${kind}">${esc(val)}</span>`;
+}
+function gaugeHTML(nov){
+  const n = Math.max(0,Math.min(100, nov==null?0:nov));
+  return `<span class="gauge"><span class="gtrack"><span class="gmark" style="left:${n}%"></span></span>`
+    + `<span class="glabel">Novelty ${n}/100</span></span>`;
+}
+function aimOf(p){
+  const a = APPROACH[p.rank]; return a && a.aim ? a.aim : (p.aim||'');
+}
+function approachDD(p){
+  const a = APPROACH[p.rank] || {};
+  const algo = a.algo ? `<span class="algo">${esc(a.algo)}</span>` : '';
+  return `${algo}${gaugeHTML(a.nov)}`
+    + `<ul>`
+    + (a.data ? `<li><b>Data:</b> ${esc(a.data)}</li>`:'')
+    + (a.model ? `<li><b>Model:</b> ${esc(a.model)}</li>`:'')
+    + (a.bio ? `<li><b>Biological question:</b> ${esc(a.bio)}</li>`:'')
+    + `</ul>`;
+}
+function evalDD(p){
+  const txt = p.insights||'';
+  // split on the inline labels, keep order
+  const idx = EVAL_LABELS.map(l => ({l, i: txt.indexOf(l)})).filter(o=>o.i>=0).sort((x,y)=>x.i-y.i);
+  if(!idx.length) return esc(txt);
+  let out = '<ul>';
+  for(let k=0;k<idx.length;k++){
+    const start = idx[k].i + idx[k].l.length;
+    const end = k+1<idx.length ? idx[k+1].i : txt.length;
+    out += `<li><b>${esc(idx[k].l.replace(/:$/,''))}:</b> ${esc(txt.slice(start,end).trim())}</li>`;
+  }
+  return out + '</ul>';
+}
+
+function cardHTML(p){
+  const st = status[p.rank];
+  const cls = st ? ' st-'+st : '';
+  const btn = (key,label)=>`<button class="sbtn${st===key?' on-'+key:''}" data-status="${key}" data-rank="${p.rank}">${label}</button>`;
+  return `<article class="card${cls}" id="card-${p.rank}" data-rank="${p.rank}">
+    <div class="hrow">
+      <span class="chip">${p.rank}</span>
+      <h3><a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.title)}</a></h3>
+    </div>
+    <div class="meta">${esc(p.authors)} &mdash; ${esc(p.institution)}</div>
+    <div class="meta"><span class="badge">${esc(p.venue)}</span> ${esc(p.date)}</div>
+    <div class="scores">Field impact ${p.impact}/10 &middot; Relevance to you ${p.rel}/10</div>
+    <div class="tagrow">${tagChips(p)}</div>
+    <div class="statusbar">
+      ${btn('important','&#9733; Important')}
+      ${btn('further','&#8599; Read further')}
+      ${btn('done','&#10003; Done reviewing')}
+      <button class="btn copy" data-copy="${p.rank}">&#8681; Copy for OneNote</button>
+    </div>
+    <div class="why"><b>Why it's on your list:</b> ${esc(p.relevance)}</div>
+    <dl>
+      <dt>Aim</dt><dd>${esc(aimOf(p))}</dd>
+      <dt>Main approach</dt><dd>${approachDD(p)}</dd>
+      <dt>Evaluation</dt><dd>${evalDD(p)}</dd>
+      <dt>Limitation / next step</dt><dd>${esc(p.limitation)}</dd>
+      <dt>Additional resources</dt><dd>${linkify(p.resources)||'&mdash;'}</dd>
+      <dt>Comments</dt><dd>${esc(p.comments)}</dd>
+    </dl>
+  </article>`;
+}
+
+function currentView(){
+  const f = document.getElementById('filter').value;
+  const s = document.getElementById('sort').value;
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  let rows = DATA.slice();
+  if(f==='untagged') rows = rows.filter(p=>!status[p.rank]);
+  else if(f!=='all') rows = rows.filter(p=>status[p.rank]===f);
+  if(tagFilter) rows = rows.filter(p => (tagFilter.kind==='app'?p.app:p.method).includes(tagFilter.val));
+  if(q) rows = rows.filter(p => (
+    [p.title,p.authors,p.institution,p.venue,(p.app||[]).join(' '),(p.method||[]).join(' ')]
+    .join(' ').toLowerCase().includes(q)));
+  const rank = (r)=>({important:0,further:1,undefined:2,done:3}[String(status[r]||'undefined')]);
+  const cmp = {
+    rank:(a,b)=>a.rank-b.rank,
+    impact:(a,b)=>b.impact-a.impact||a.rank-b.rank,
+    rel:(a,b)=>b.rel-a.rel||a.rank-b.rank,
+    venue:(a,b)=>a.venue.localeCompare(b.venue)||a.rank-b.rank,
+    status:(a,b)=>rank(a.rank)-rank(b.rank)||a.rank-b.rank,
+  }[s];
+  rows.sort(cmp);
+  return rows;
+}
+
+function render(){
+  const rows = currentView();
+  document.getElementById('list').innerHTML = rows.map(cardHTML).join('') ||
+    '<p class="meta">No papers match the current filters.</p>';
+  document.getElementById('sidehead').textContent = `Papers (${rows.length})`;
+  document.getElementById('sidelist').innerHTML = rows.map(p=>{
+    const st = status[p.rank];
+    const bg = st==='important'?'var(--important)':st==='further'?'var(--further)':st==='done'?'var(--done)':'var(--accent)';
+    const sub = ((p.app||[])[0]||'') + (p.venue? ' &middot; '+esc(p.venue):'');
+    return `<li data-goto="${p.rank}"><span class="chip" style="background:${bg}">${p.rank}</span>
+      <span><span class="s-title">${esc(p.title)}</span><br><span class="s-sub">${sub}</span></span></li>`;
+  }).join('');
+  const tf = document.getElementById('tagfilter');
+  tf.innerHTML = tagFilter ? `Filter: <b>${esc(tagFilter.val)}</b> (${tagFilter.kind})
+    <span class="clear" id="cleartag">clear &#10005;</span>` : '';
+  document.getElementById('counts').textContent =
+    `${rows.length} of ${DATA.length} shown`;
+}
+
+// ----- OneNote export (§7): minimal inline-styled HTML -----
+function oneNoteHTML(p){
+  const a = APPROACH[p.rank] || {};
+  const evalItems = (()=>{ const d = document.createElement('div'); d.innerHTML = evalDD(p);
+    return Array.from(d.querySelectorAll('li')).map(li=>`<li>${li.innerHTML}</li>`).join(''); })();
+  const bul = [];
+  if(a.data) bul.push(`<li><b>Data:</b> ${esc(a.data)}</li>`);
+  if(a.model) bul.push(`<li><b>Model:</b> ${esc(a.model)}</li>`);
+  if(a.bio) bul.push(`<li><b>Biological question:</b> ${esc(a.bio)}</li>`);
+  return `<div style="font-family:Calibri,sans-serif">
+    <h2>${esc(p.title)}</h2>
+    <p>${esc(p.authors)} &mdash; ${esc(p.institution)}</p>
+    <p><b>${esc(p.venue)}</b>, ${esc(p.date)} &middot; Field impact ${p.impact}/10 &middot;
+       Relevance ${p.rel}/10 &middot; <a href="${esc(p.url)}">${esc(p.url)}</a></p>
+    <p><b>Application:</b> ${esc((p.app||[]).join(', '))} &nbsp; <b>Method:</b> ${esc((p.method||[]).join(', '))}</p>
+    <p><b>Aim:</b> ${esc(aimOf(p))}</p>
+    <p><b>Main approach:</b> ${esc(a.algo||'')} (Novelty ${a.nov==null?'?':a.nov}/100)</p>
+    <ul>${bul.join('')}</ul>
+    <p><b>Evaluation:</b></p><ul>${evalItems}</ul>
+    <p><b>Limitation / next step:</b> ${esc(p.limitation)}</p>
+    <p><b>Resources:</b> ${esc(p.resources)}</p>
+    <p><b>Comments:</b> ${esc(p.comments)}</p>
+    <p><b>Why relevant:</b> ${esc(p.relevance)}</p>
+  </div>`;
+}
+
+async function copyHTML(html, msg){
+  try{
+    const item = new ClipboardItem({
+      'text/html': new Blob([html],{type:'text/html'}),
+      'text/plain': new Blob([html.replace(/<[^>]+>/g,'')],{type:'text/plain'})
+    });
+    await navigator.clipboard.write([item]);
+    toast(msg);
+  }catch(e){
+    const el = document.createElement('div');
+    el.contentEditable = 'true'; el.innerHTML = html;
+    el.style.position='fixed'; el.style.left='-9999px';
+    document.body.appendChild(el);
+    const r = document.createRange(); r.selectNodeContents(el);
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    try{ document.execCommand('copy'); toast(msg); }catch(_){ toast('Copy failed'); }
+    sel.removeAllRanges(); document.body.removeChild(el);
+  }
+}
+let toastT;
+function toast(msg){
+  const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(()=>t.classList.remove('show'), 1600);
+}
+
+// ----- Event delegation (§9) -----
+document.getElementById('list').addEventListener('click', e=>{
+  const s = e.target.closest('[data-status]');
+  if(s){ const r=s.dataset.rank, k=s.dataset.status;
+    status[r] = status[r]===k ? undefined : k;
+    if(!status[r]) delete status[r];
+    saveStatus(); render(); return; }
+  const c = e.target.closest('[data-copy]');
+  if(c){ const p = DATA.find(x=>String(x.rank)===c.dataset.copy);
+    copyHTML(oneNoteHTML(p), 'Copied paper for OneNote'); return; }
+  const t = e.target.closest('[data-tag]');
+  if(t){ const val=t.dataset.tag, kind=t.dataset.kind;
+    tagFilter = (tagFilter && tagFilter.val===val && tagFilter.kind===kind) ? null : {val,kind};
+    render(); return; }
+});
+document.getElementById('sidelist').addEventListener('click', e=>{
+  const li = e.target.closest('[data-goto]'); if(!li) return;
+  const card = document.getElementById('card-'+li.dataset.goto);
+  if(card){ card.scrollIntoView({behavior:'smooth',block:'start'});
+    card.classList.remove('flash'); void card.offsetWidth; card.classList.add('flash'); }
+});
+document.getElementById('tagfilter').addEventListener('click', e=>{
+  if(e.target.id==='cleartag'){ tagFilter=null; render(); }
+});
+document.getElementById('copyview').addEventListener('click', ()=>{
+  const rows = currentView();
+  const html = `<div style="font-family:Calibri,sans-serif"><h1>CompBio Review Queue (${rows.length} papers)</h1>`
+    + rows.map(oneNoteHTML).join('<hr>') + '</div>';
+  copyHTML(html, `Copied ${rows.length} papers for OneNote`);
+});
+['filter','sort','search'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', render);
+});
+
+render();
+</script>
+</body>
+</html>
