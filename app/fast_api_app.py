@@ -174,9 +174,9 @@ def root() -> RedirectResponse:
     return RedirectResponse(url="/reviewer")
 
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 def health() -> dict[str, str]:
-    """Liveness probe for Cloud Run."""
+    """Liveness probe for Cloud Run (also HEAD, for uptime/status pings)."""
     return {"status": "ok"}
 
 

@@ -1,6 +1,6 @@
 # Literature Reviewer
 
-[![Server status](https://img.shields.io/website?url=https%3A%2F%2Fliterature-reviewer-4055136070.us-central1.run.app%2Freviewer&up_message=online&down_message=offline&label=server)](https://literature-reviewer-4055136070.us-central1.run.app/reviewer)
+[![Server status](https://img.shields.io/website?url=https%3A%2F%2Fliterature-reviewer-4055136070.us-central1.run.app%2Fhealth&up_message=online&down_message=offline&label=server)](https://literature-reviewer-4055136070.us-central1.run.app/reviewer)
 
 Lieterature review is often a daunting task. This concierge agent is designed to help you review literature of your field and/or your field of interest in a single view. Use your own API key to regenerate for their field of interest below.
 
