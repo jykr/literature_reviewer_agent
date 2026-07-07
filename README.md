@@ -2,7 +2,7 @@
 
 [![Server status](https://img.shields.io/website?url=https%3A%2F%2Fliterature-reviewer-4055136070.us-central1.run.app%2Fhealth&up_message=online&down_message=offline&label=server)](https://literature-reviewer-4055136070.us-central1.run.app/reviewer)
 
-Literature review is often a daunting task. This concierge agent runs as a hosted web app on **Google Cloud Run** — point it at your field of interest (a CV, a seed paper, or a few keywords) and it returns a single ranked, structured review of the last ~12 months of computational-biology papers. The public server generates reviews on **your own API key**, used per-request and never stored.
+Literature review is often a daunting task. This concierge agent runs as a hosted web app on **Google Cloud Run** — point it at your field of interest (a CV, a seed paper, or a few keywords) and it returns a single ranked, structured review of the last ~12 months of papers in that field (computational biology by default; retarget any field via a [config knob](#domain-agnostic-by-design)). The public server generates reviews on **your own API key**, used per-request and never stored.
 
 **Live server:** https://literature-reviewer-4055136070.us-central1.run.app/reviewer
 
