@@ -12,41 +12,37 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import asyncio
 import contextlib
 import json
 import os
-import uuid
+import urllib.error
 from collections.abc import AsyncIterator
 
 import google.auth
 from a2a.server.tasks import InMemoryTaskStore
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, HTTPException
+from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from google.adk.cli.fast_api import get_fast_api_app
 from google.adk.runners import Runner
 from google.cloud import logging as google_cloud_logging
-from google.genai import types as genai_types
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from app.render import build_payload, categories_from_scope
-from app.schemas import ReviewQueue
+from app import byo_review
 
 from app.app_utils import services
 from app.app_utils.a2a import attach_a2a_routes
 from app.app_utils.reasoning_engine_adapter import (
     attach_reasoning_engine_routes,
 )
-from app.app_utils.telemetry import (
-    setup_agent_engine_telemetry,
-    setup_telemetry,
-)
+from app.app_utils.telemetry import setup_telemetry
 from app.app_utils.typing import Feedback
 
 load_dotenv()
+# Sets the OTel providers/resource; must run before get_fast_api_app.
 setup_telemetry()
-# Must run before get_fast_api_app to set the tracer provider resource.
-setup_agent_engine_telemetry()
 _, project_id = google.auth.default()
 logging_client = google_cloud_logging.Client()
 logger = logging_client.logger(__name__)
@@ -55,6 +51,14 @@ allow_origins = (
 )
 
 AGENT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+# The full ADK agent API (get_fast_api_app's /run, /run_sse and dev UI), the A2A
+# routes, and the reasoning_engine proxy all execute the agent on the PROJECT's
+# credentials. The public web app only needs the BYO-key /review endpoints, so
+# these agent-protocol surfaces are OFF by default and must be opted into (e.g.
+# for the Vertex AI playground or A2A clients sitting behind their own auth).
+ENABLE_AGENT_API = os.getenv("ENABLE_AGENT_API", "").lower() in ("1", "true", "yes")
 
 
 @contextlib.asynccontextmanager
@@ -84,22 +88,36 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
 
 
-app: FastAPI = get_fast_api_app(
-    agents_dir=AGENT_DIR,
-    web=True,
-    artifact_service_uri=services.ARTIFACT_SERVICE_URI,
-    allow_origins=allow_origins,
-    session_service_uri=services.SESSION_SERVICE_URI,
-    otel_to_cloud=False,
-    lifespan=lifespan,
-)
+if ENABLE_AGENT_API:
+    app: FastAPI = get_fast_api_app(
+        agents_dir=AGENT_DIR,
+        web=True,
+        artifact_service_uri=services.ARTIFACT_SERVICE_URI,
+        allow_origins=allow_origins,
+        session_service_uri=services.SESSION_SERVICE_URI,
+        otel_to_cloud=False,
+        lifespan=lifespan,
+    )
+    # Proxy routes so the Vertex AI Console Playground (reasoning_engine SDK) can
+    # talk to this agent alongside the native adk_api routes.
+    attach_reasoning_engine_routes(app)
+else:
+    # Public deployment: only the BYO-key web app. No agent-protocol routes, no
+    # ADK session/artifact services, and no agent ever built on project creds.
+    app = FastAPI()
+    if allow_origins:
+        from fastapi.middleware.cors import CORSMiddleware
+
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=allow_origins,
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+
 app.title = "literature-reviewer"
 app.description = "API for interacting with the Agent literature-reviewer"
-
-
-# Proxy routes so the Vertex AI Console Playground (reasoning_engine SDK) can
-# talk to this agent alongside the native adk_api routes.
-attach_reasoning_engine_routes(app)
 
 
 class InputItem(BaseModel):
@@ -110,14 +128,56 @@ class InputItem(BaseModel):
 
 
 class ReviewRequest(BaseModel):
+    """A regenerate request from the interests panel.
+
+    ``api_key`` (aliased ``apiKey`` on the wire) is supplied by the user and used
+    for that request only -- never stored or logged. The project's own
+    credentials are never used to generate reviews, so the service is safe to
+    expose publicly: each request bills the caller's key.
+    """
+
     inputs: list[InputItem]
+    provider: str = "gemini"
+    model: str = ""
+    api_key: str = Field("", alias="apiKey")
+
+    model_config = {"populate_by_name": True}
 
 
-_INPUT_LABELS = {
-    "cv": "CV / profile",
-    "paper": "Paper",
-    "keyword": "Research topic/keyword",
-}
+def _require_key(req: ReviewRequest) -> tuple[str, str]:
+    """Validate the provider + user key, returning ``(provider, key)``.
+
+    Raises ``HTTPException`` (400) when the key is missing or the provider is
+    unsupported -- generation never falls back to project credentials.
+    """
+    key = (req.api_key or "").strip()
+    if not key:
+        raise HTTPException(
+            status_code=400,
+            detail="Enter your API key to regenerate the review.",
+        )
+    provider = (req.provider or "gemini").lower()
+    if provider not in byo_review.SUPPORTED_PROVIDERS:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Unsupported provider {provider!r}. Choose one of: "
+                f"{', '.join(byo_review.SUPPORTED_PROVIDERS)}."
+            ),
+        )
+    return provider, key
+
+
+@app.get("/")
+def root() -> RedirectResponse:
+    """Send the bare URL to the review app."""
+    return RedirectResponse(url="/reviewer")
+
+
+@app.get("/health")
+def health() -> dict[str, str]:
+    """Liveness probe for Cloud Run."""
+    return {"status": "ok"}
 
 
 @app.get("/reviewer")
@@ -127,67 +187,92 @@ def reviewer_page() -> FileResponse:
 
 
 @app.post("/review")
-async def review(req: ReviewRequest, request: Request) -> dict:
-    """Run the scope→research→rank pipeline for the given inputs, return JSON.
+async def review(req: ReviewRequest) -> dict:
+    """Regenerate the review on the caller's own API key and return the SPEC §3
+    JSON.
 
-    Mirrors the offline file's data model (SPEC §3) but returns it as an API
-    response the interests panel re-renders in place, instead of a baked file.
+    Runs the provider-agnostic pipeline (:mod:`app.byo_review`) -- no ADK, no
+    project credentials. Synchronous; the interests panel may use
+    ``/review/stream`` instead for per-stage progress.
     """
-    runner: Runner = request.app.state.runner
-    app_name: str = request.app.state.agent_app_name
-
-    lines = [
-        f"- {_INPUT_LABELS.get(it.kind, it.kind)}: {it.value.strip()}"
-        for it in req.inputs
-        if it.value and it.value.strip()
-    ]
-    if not lines:
-        raise HTTPException(status_code=400, detail="Provide at least one input.")
-    text = (
-        "Build my recent computational-biology review from these interest inputs:\n"
-        + "\n".join(lines)
-    )
-
-    user_id = "web"
-    session_id = uuid.uuid4().hex  # auto-created by the Runner (auto_create_session)
-    message = genai_types.Content(
-        role="user", parts=[genai_types.Part(text=text)]
-    )
-    async for _ in runner.run_async(
-        user_id=user_id, session_id=session_id, new_message=message
-    ):
-        pass  # drain the event stream; final data lands in session state
-
-    session = await runner.session_service.get_session(
-        app_name=app_name, user_id=user_id, session_id=session_id
-    )
-    state = session.state if session else {}
-
-    raw = state.get("review_queue")
-    if raw is None:
-        # scope_agent asked for more input, or nothing verifiable was found.
-        raise HTTPException(
-            status_code=422,
-            detail="No review produced. Provide a CV/website URL or a few "
-            "research topics/keywords.",
+    provider, key = _require_key(req)
+    inputs = [it.model_dump() for it in req.inputs]
+    try:
+        return await run_in_threadpool(
+            byo_review.run_pipeline, inputs, provider, req.model, key
         )
-    if isinstance(raw, str):
-        raw = json.loads(raw)
-    queue = ReviewQueue.model_validate(raw)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", "ignore")[:400]
+        raise HTTPException(
+            status_code=502, detail=f"{provider} API {exc.code}: {detail}"
+        ) from exc
 
-    scope = state.get("scope")
-    profile = ""
-    if isinstance(scope, str):
-        with contextlib.suppress(json.JSONDecodeError):
-            profile = json.loads(scope).get("profile", "")
-    elif isinstance(scope, dict):
-        profile = scope.get("profile", "")
 
-    payload = build_payload(
-        queue, profile=profile, categories=categories_from_scope(scope)
+@app.post("/review/stream")
+async def review_stream(req: ReviewRequest) -> StreamingResponse:
+    """Same pipeline as /review, streamed as Server-Sent Events.
+
+    Emits ``{type:'progress', stage, label}`` as each stage starts, then a final
+    ``{type:'done', payload}`` (or ``{type:'error', detail}``). The payload is
+    identical to what /review returns.
+    """
+    provider, key = _require_key(req)
+    inputs = [it.model_dump() for it in req.inputs]
+
+    def sse(obj: dict) -> str:
+        # json.dumps emits no literal newlines, so one event is always one line.
+        return f"data: {json.dumps(obj)}\n\n"
+
+    async def generate():
+        loop = asyncio.get_running_loop()
+        events: asyncio.Queue = asyncio.Queue()
+
+        def on_stage(stage: str, label: str) -> None:
+            # Invoked from the worker thread -> hop back onto the event loop.
+            loop.call_soon_threadsafe(
+                events.put_nowait, {"type": "progress", "stage": stage, "label": label}
+            )
+
+        async def worker():
+            try:
+                payload = await run_in_threadpool(
+                    byo_review.run_pipeline, inputs, provider, req.model, key, on_stage
+                )
+                events.put_nowait({"type": "done", "payload": payload})
+            except ValueError as exc:
+                events.put_nowait({"type": "error", "detail": str(exc)})
+            except urllib.error.HTTPError as exc:
+                detail = exc.read().decode("utf-8", "ignore")[:400]
+                events.put_nowait(
+                    {"type": "error", "detail": f"{provider} API {exc.code}: {detail}"}
+                )
+            except Exception as exc:  # noqa: BLE001 - stream must not raise mid-flight
+                logger.log_struct(
+                    {"event": "review_stream_error", "error": str(exc)}, severity="ERROR"
+                )
+                events.put_nowait(
+                    {"type": "error", "detail": "Internal error generating review."}
+                )
+            finally:
+                events.put_nowait(None)  # sentinel: worker finished
+
+        task = asyncio.create_task(worker())
+        try:
+            while True:
+                item = await events.get()
+                if item is None:
+                    break
+                yield sse(item)
+        finally:
+            await task
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
-    payload["inputs"] = [it.model_dump() for it in req.inputs]
-    return payload
 
 
 @app.post("/feedback")

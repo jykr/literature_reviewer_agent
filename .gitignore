@@ -207,3 +207,11 @@ tools/a2a-inspector/
 *.pem
 *-key.json
 credentials*.json
+
+# Standalone bring-your-own-key server (superseded by app/byo_review.py).
+# Kept locally for zero-dependency use; never part of the real deployment.
+deployment/noadk/
+
+# Kaggle submission materials — not part of the public codebase.
+kaggle_instructions.md
+kaggle_writeup.md

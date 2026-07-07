@@ -44,11 +44,15 @@ empty or `[]`):
 Do the following:
 1. MERGE all candidate papers into one list and DEDUPLICATE (same title or URL =
    same paper). Drop anything that looks unverifiable or fabricated.
-2. Deepen each paper into the two axes (SPEC §2.3):
+2. Deepen each paper into the three axes (SPEC §2.3):
    - Main approach: name the core algorithm; judge whether it is off-the-shelf or
      novel and set `nov` (0 = pure engineering/integration ... 100 = fundamentally
      new algorithm; middle = modified existing architecture).
    - Evaluation: new metric? new eval data? design novelty? eval limitations?
+   - Results: the paper's MAIN results as a list of short bullet strings in
+     `results`. For any QUANTITATIVE result, name the task, the data/benchmark,
+     the metric, and the value (e.g. "Contact prediction (CASP15): 0.72 long-range
+     precision, +0.05 over the baseline"). Keep each bullet to one sentence.
 3. For each paper, set `cats` to the 0-based indices (into the scope's
    `clusters` array, in order) of EVERY cluster/category it matches. A paper may
    match several. This is the primary rank driver (SPEC §3d).

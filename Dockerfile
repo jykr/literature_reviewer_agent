@@ -22,6 +22,9 @@ COPY ./pyproject.toml ./README.md ./uv.lock* ./
 
 COPY ./app ./app
 
+# The single-file review web app served at /reviewer (AGENT_DIR/literature-reviewer.html).
+COPY ./literature-reviewer.html ./
+
 RUN uv sync --frozen
 
 ARG COMMIT_SHA=""

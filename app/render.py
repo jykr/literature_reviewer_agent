@@ -88,6 +88,7 @@ def build_payload(
                 "date": p.date,
                 "url": p.url,
                 "insights": p.insights,
+                "results": list(getattr(p, "results", []) or []),
                 "limitation": p.limitation,
                 "resources": p.resources,
                 "comments": p.comments,
@@ -517,6 +518,11 @@ function evalDD(p){
   }
   return out + '</ul>';
 }
+function resultsDD(p){
+  const r = (p.results||[]).filter(x=>x!=null && String(x).trim());
+  if(!r.length) return '';
+  return '<ul>' + r.map(x=>`<li>${esc(x)}</li>`).join('') + '</ul>';
+}
 
 function cardHTML(p){
   const st = status[p.rank];
@@ -542,6 +548,7 @@ function cardHTML(p){
       <dt>Aim</dt><dd>${esc(aimOf(p))}</dd>
       <dt>Main approach</dt><dd>${approachDD(p)}</dd>
       <dt>Evaluation</dt><dd>${evalDD(p)}</dd>
+      ${resultsDD(p)?`<dt>Results</dt><dd>${resultsDD(p)}</dd>`:''}
       <dt>Limitation / next step</dt><dd>${esc(p.limitation)}</dd>
       <dt>Additional resources</dt><dd>${linkify(p.resources)||'&mdash;'}</dd>
       <dt>Comments</dt><dd>${esc(p.comments)}</dd>
@@ -608,6 +615,8 @@ function oneNoteHTML(p){
   if(a.data) bul.push(`<li><b>Data:</b> ${esc(a.data)}</li>`);
   if(a.model) bul.push(`<li><b>Model:</b> ${esc(a.model)}</li>`);
   if(a.bio) bul.push(`<li><b>Biological question:</b> ${esc(a.bio)}</li>`);
+  const resItems = (p.results||[]).filter(x=>x!=null && String(x).trim())
+    .map(x=>`<li>${esc(x)}</li>`).join('');
   return `<div style="font-family:Calibri,sans-serif">
     <h2>${esc(p.title)}</h2>
     <p>${esc(p.authors)} &mdash; ${esc(p.institution)}</p>
@@ -618,6 +627,7 @@ function oneNoteHTML(p){
     <p><b>Main approach:</b> ${esc(a.algo||'')} (Novelty ${a.nov==null?'?':a.nov}/100)</p>
     <ul>${bul.join('')}</ul>
     <p><b>Evaluation:</b></p><ul>${evalItems}</ul>
+    ${resItems?`<p><b>Results:</b></p><ul>${resItems}</ul>`:''}
     <p><b>Limitation / next step:</b> ${esc(p.limitation)}</p>
     <p><b>Resources:</b> ${esc(p.resources)}</p>
     <p><b>Comments:</b> ${esc(p.comments)}</p>
@@ -743,22 +753,45 @@ function offlineFallback(){
   copyText(prompt, 'No live backend — prompt copied to clipboard');
   setStatus('No live backend reachable. Copied a prompt to paste into the agent chat.');
 }
+function doneMsg(){
+  return `Updated — ${DATA.length} paper${DATA.length===1?'':'s'} across `
+    + `${CATEGORIES.length} categor${CATEGORIES.length===1?'y':'ies'}.`;
+}
 async function regenerate(){
   if(!INPUTS.length){ setStatus('Add at least one interest first.'); return; }
   const btn = document.getElementById('regen');
   btn.disabled = true;
-  setStatus('Researching recent papers… this can take a minute.');
+  setStatus('Starting…');
   try{
-    const res = await fetch('/review', {
+    const res = await fetch('/review/stream', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({inputs: INPUTS.map(i=>({kind:i.kind, value:i.value}))})
     });
-    if(!res.ok){
+    if(!res.ok || !res.body){
       let detail=''; try{ detail=(await res.json()).detail||''; }catch(_){}
       throw new Error(detail || ('HTTP '+res.status));
     }
-    applyPayload(await res.json());
-    setStatus(`Updated — ${DATA.length} paper${DATA.length===1?'':'s'} across ${CATEGORIES.length} categor${CATEGORIES.length===1?'y':'ies'}.`);
+    // Parse the SSE stream (POST rules out EventSource): read data: frames.
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf='', done=false, errored=null;
+    for(;;){
+      const {value, done:rdone} = await reader.read();
+      if(rdone) break;
+      buf += dec.decode(value, {stream:true});
+      let sep;
+      while((sep = buf.indexOf('\n\n')) >= 0){
+        const frame = buf.slice(0, sep); buf = buf.slice(sep+2);
+        const line = frame.split('\n').find(l=>l.startsWith('data:'));
+        if(!line) continue;
+        let msg; try{ msg = JSON.parse(line.slice(5).trim()); }catch(_){ continue; }
+        if(msg.type==='progress'){ setStatus(msg.label); }
+        else if(msg.type==='done'){ applyPayload(msg.payload); done=true; setStatus(doneMsg()); }
+        else if(msg.type==='error'){ errored = msg.detail || 'Could not regenerate.'; }
+      }
+    }
+    if(errored) setStatus('Could not regenerate: ' + errored);
+    else if(!done) setStatus('Regeneration ended without a result.');
   }catch(err){
     if(err instanceof TypeError) offlineFallback();          // fetch failed = no backend
     else setStatus('Could not regenerate: ' + err.message);  // backend reachable but errored

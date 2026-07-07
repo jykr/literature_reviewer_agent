@@ -6,7 +6,7 @@ base_template: adk
 generated_at: '2026-07-03T09:03:56.619460+00:00'
 language: python
 create_params:
-  deployment_target: agent_runtime
+  deployment_target: cloud_run
   cicd_runner: skip
   is_a2a: true
   agent_guidance_filename: GEMINI.md

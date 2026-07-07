@@ -29,26 +29,26 @@ The data is **researched, not hardcoded from memory**. To reproduce:
    add / edit / remove inputs using an interface. Zero inputs is invalid; a single
    input is fine.
 
-1. **Normalize each input into one or more clusters.** Each cluster is `{ id,
-   label, source: <inputId>, terms:[...] }`.
+1. **Normalize each input into one or more clusters.** Each cluster is `{ id, label, source: <inputId>, terms:[...] }`.
    - **CV** → WebFetch (or read pasted text); extract the researcher's subfields
      and keywords, and split into one **sub-cluster per distinct subfield** (all
      back-referencing the same CV input).
    - **Paper** → resolve the title/DOI/URL; derive a cluster from its topic(s),
      method, and key terms.
    - **Keyword(s)** → one cluster per coherent keyword or phrase group, verbatim.
-   Deduplicate/merge near-identical clusters, but keep each cluster's `source` list
-   so a paper matching a merged cluster counts toward every contributing input.
-   Every cluster is a **category** used for coverage scoring (§3d).
+     Deduplicate/merge near-identical clusters, but keep each cluster's `source` list
+     so a paper matching a merged cluster counts toward every contributing input.
+     Every cluster is a **category** used for coverage scoring (§3d).
 2. **Fan out parallel web research** (one agent per cluster), each asked for 4–6
    real, verifiable papers with: title, authors (1st + last/PI), institution, venue,
    date, URL, and draft summary fields. Deduplicate across clusters — when the same
    paper surfaces under multiple clusters, **merge** it and record *all* clusters/
    categories it hit (this drives coverage scoring, so do not drop the duplicates
    silently).
-3. **Second pass per paper** to deepen two axes:
+3. **Second pass per paper** to deepen three axes:
    - *Main approach* → is the method off-the-shelf or novel; name the algorithm.
    - *Evaluation* → new metric? new eval data? design novelty? eval limitations.
+   - *Results* → Summarize each of the main results as bullet points. Include which task, data, metric, and result.
 4. **Rank** by a blended judgment of, in priority order:
    - **Category coverage** — how many distinct input categories (clusters) the
      paper matches; **more categories ranks higher** (a paper answering several of
@@ -56,8 +56,8 @@ The data is **researched, not hardcoded from memory**. To reproduce:
      sort key.
    - then **field impact · relevance to the inputs · author/institution
      credibility · venue**, as tie-breakers within a coverage level.
-   Optionally ground impact with real bibliometrics (e.g. OpenAlex citations + FWCI
-   via a DOI bulk lookup).
+     Optionally ground impact with real bibliometrics (e.g. OpenAlex citations + FWCI
+     via a DOI bulk lookup).
 5. **Integrity rule:** only include verified papers; where a figure can't be
    confirmed from primary text, hedge it in prose rather than invent. Prefer
    characterizing *how* a paper evaluated over quoting exact result numbers.
@@ -67,30 +67,33 @@ The data is **researched, not hardcoded from memory**. To reproduce:
 Two sources merged at load, both keyed by integer `rank` (1 = top):
 
 ### 3a. `DATA` — JSON array in `<script id="data" type="application/json">`
+
 One object per paper:
 
-| field | type | meaning |
-|---|---|---|
-| `rank` | int | 1-based rank; primary key & default sort |
-| `title` | string | paper title (card heading, links to `url`) |
-| `authors` | string | "First A., …, Senior Z." |
-| `institution` | string | lead institution(s) |
-| `venue` | string | journal / conference / "bioRxiv preprint" |
-| `date` | string | e.g. "Jan 2026 (bioRxiv Jun 2025)" |
-| `url` | string | canonical link (DOI / journal / preprint) |
-| `insights` | string | **Evaluation** text, written with 4 inline labels: `New metric:` … `New eval data:` … `Design & novelty:` … `Eval limits:` … (parsed into bullets at render) |
-| `limitation` | string | limitation / next step |
-| `resources` | string | code/data/blog links as bare URLs (auto-linkified) |
-| `comments` | string | reviewer's significance note |
-| `relevance` | string | why it matters to *this* researcher (name which input(s) it serves) |
-| `impact` | int 1–10 | field impact score |
-| `rel` | int 1–10 | relevance-to-inputs score (best match across all inputs) |
-| `cats` | int[] | ids of the input categories/clusters this paper matches (see §3d) |
-| `cover` | int | `cats.length` — distinct categories hit; primary rank driver |
-| `topic` | string | legacy single label (superseded by tags; may be unused) |
-| `aim`, `approach` | string | legacy fallbacks; superseded by the `APPROACH` map |
+
+| field             | type      | meaning                                                                                                                                                          |
+| ------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `rank`            | int       | 1-based rank; primary key & default sort                                                                                                                         |
+| `title`           | string    | paper title (card heading, links to`url`)                                                                                                                        |
+| `authors`         | string    | "First A., …, Senior Z."                                                                                                                                        |
+| `institution`     | string    | lead institution(s)                                                                                                                                              |
+| `venue`           | string    | journal / conference / "bioRxiv preprint"                                                                                                                        |
+| `date`            | string    | e.g. "Jan 2026 (bioRxiv Jun 2025)"                                                                                                                               |
+| `url`             | string    | canonical link (DOI / journal / preprint)                                                                                                                        |
+| `insights`        | string    | **Evaluation** text, written with 4 inline labels: `New metric:` … `New eval data:` … `Design & novelty:` … `Eval limits:` … (parsed into bullets at render) |
+| `limitation`      | string    | limitation / next step                                                                                                                                           |
+| `resources`       | string    | code/data/blog links as bare URLs (auto-linkified)                                                                                                               |
+| `comments`        | string    | reviewer's significance note                                                                                                                                     |
+| `relevance`       | string    | why it matters to*this* researcher (name which input(s) it serves)                                                                                               |
+| `impact`          | int 1–10 | field impact score                                                                                                                                               |
+| `rel`             | int 1–10 | relevance-to-inputs score (best match across all inputs)                                                                                                         |
+| `cats`            | int[]     | ids of the input categories/clusters this paper matches (see §3d)                                                                                               |
+| `cover`           | int       | `cats.length` — distinct categories hit; primary rank driver                                                                                                    |
+| `topic`           | string    | legacy single label (superseded by tags; may be unused)                                                                                                          |
+| `aim`, `approach` | string    | legacy fallbacks; superseded by the`APPROACH` map                                                                                                                |
 
 ### 3b. `TAGS` — JS object `{ rank: { app:[...], method:[...] } }`
+
 - `app` = **Application** (biological problem): e.g. *Variant effect, Perturbation
   prediction, Spatial domains, GRN inference, Multiomics integration, Drug response,
   Cell annotation, Genome annotation, Clinical genetics, CRISPR screens*.
@@ -102,6 +105,7 @@ One object per paper:
 Merged in with `DATA.forEach(p => { p.app = TAGS[p.rank].app; p.method = TAGS[p.rank].method; })`.
 
 ### 3c. `APPROACH` — JS object `{ rank: { algo, nov, aim, data, model, bio } }`
+
 Holds the detailed narrative (single source of truth; JSON `aim`/`approach` are
 fallbacks only):
 
@@ -120,6 +124,7 @@ fallbacks only):
 - `bio` (string): the biological question the paper answers.
 
 ### 3d. `INPUTS` / `CATEGORIES` — the interest inputs and their clusters
+
 - `INPUTS` — array `[{ id, kind:'cv'|'paper'|'keyword', value, label }]`, the raw
   items the user supplied (§2.0). Editable; persisted to
   `localStorage['compbio-review-inputs-v1']`.
@@ -127,8 +132,7 @@ fallbacks only):
   derived in §2.1 (one per subfield/paper-topic/keyword-group). Each is a scoring
   **category**; `sources` lets one category credit multiple inputs (e.g. a subfield
   shared by two CVs).
-- A paper's `cats` (§3a) holds the ids of the categories it matched, and `cover =
-  cats.length`. Coverage is the **primary rank key** (§2.4): sort by `cover`
+- A paper's `cats` (§3a) holds the ids of the categories it matched, and `cover = cats.length`. Coverage is the **primary rank key** (§2.4): sort by `cover`
   descending, then by the blended impact/relevance/credibility/venue judgment. A
   paper hitting 3 of the researcher's input categories outranks one hitting 1, even
   if the latter has a slightly higher impact score.
@@ -186,7 +190,7 @@ fallbacks only):
   tags, and category labels.
 - **Tag filter:** clicking any App/Method/Category chip filters list + sidebar to
   that tag (Category chips filter to papers whose `cats` include that category);
-  an indicator "Filter: <val> (kind) [clear ✕]" appears; clicking the active chip or
+  an indicator "Filter: <val></val> (kind) [clear ✕]" appears; clicking the active chip or
   ✕ clears it. Selected chip gets an outline.
 - **Re-render** is a single `render()` that rebuilds list, sidebar, tag bar, and
   counts from `currentView()` (the filtered+sorted array). Everything stays in sync.
@@ -206,9 +210,7 @@ fallbacks only):
 
 ## 8. Styling tokens
 
-CSS variables: `--bg#f6f7f9 --card#fff --ink#1a1d21 --muted#5b6570 --line#e3e7ec
---accent#2b6cb0 --accent-soft#e8f0f8` and status colors `--important#c0392b
---further#b7791f --done#2f855a`. System font stack. Cards: white, 12px radius,
+CSS variables: `--bg#f6f7f9 --card#fff --ink#1a1d21 --muted#5b6570 --line#e3e7ec --accent#2b6cb0 --accent-soft#e8f0f8` and status colors `--important#c0392b --further#b7791f --done#2f855a`. System font stack. Cards: white, 12px radius,
 1px border, subtle shadow, colored left border when tagged. App chips blue
 (`#e8f0f8/#255e91`), Method chips purple (`#efeafc/#5b3fa8`). Algo chip dark
 (`#1f2733`, white text). Gauge = 120px track with a grey→purple gradient and a
@@ -222,8 +224,7 @@ white dot (`.gmark`) positioned at `left:{nov}%`.
 - `tagChips(p)` (App + Method + **Category** chips, the last from `p.cats` →
   `CATEGORIES`), `coverBadge(p)` ("Matches N of M interests"), `gaugeHTML(nov)`,
   `approachDD(p)` (algo chip + gauge + Data/Model/
-  Bio bullets), `aimOf(p)`, `evalDD(p)` (splits `insights` on `EVAL_LABELS =
-  ['New metric:','New eval data:','Design & novelty:','Eval limits:']`),
+  Bio bullets), `aimOf(p)`, `evalDD(p)` (splits `insights` on `EVAL_LABELS = ['New metric:','New eval data:','Design & novelty:','Eval limits:']`),
   `cardHTML(p)`, `currentView()`, `render()`, `oneNoteHTML(p)`, `copyHTML(html,msg)`,
   `toast(msg)`.
 - Event delegation: one listener on the list (status / tag / copy), one on the

@@ -79,6 +79,13 @@ class Paper(BaseModel):
         description="Evaluation text with the four inline labels verbatim: "
         "'New metric:' ... 'New eval data:' ... 'Design & novelty:' ... 'Eval limits:' ..."
     )
+    results: list[str] = Field(
+        default_factory=list,
+        description="Main results of the paper as concise bullet points (SPEC §2.3). "
+        "For a QUANTITATIVE result, state the task, the data/benchmark, the metric, "
+        "and the value, e.g. 'Variant effect (ClinVar): 0.91 auROC, +0.04 over Enformer'. "
+        "Prefer characterizing results you cannot confirm over quoting exact numbers.",
+    )
     limitation: str
     resources: str = Field(default="", description="Bare URLs to code/data/blog; auto-linkified.")
     comments: str = Field(description="Reviewer significance note.")

@@ -1,119 +1,34 @@
-# literature-reviewer
+# Literature Reviewer
 
-Simple ReAct agent
-Agent generated with `agents-cli` version `1.0.0`
+[![Server status](https://img.shields.io/website?url=https%3A%2F%2Fliterature-reviewer-4055136070.us-central1.run.app%2Freviewer&up_message=online&down_message=offline&label=server)](https://literature-reviewer-4055136070.us-central1.run.app/reviewer)
 
-## Project Structure
+Lieterature review is often a daunting task. This concierge agent is designed to help you review literature of your field and/or your field of interest in a single view. Use your own API key to regenerate for their field of interest below.
 
-```
-literature-reviewer/
-├── app/         # Core agent code
-│   ├── agent.py               # Main agent logic
-│   ├── fast_api_app.py        # FastAPI Backend server
-│   └── app_utils/             # App utilities and helpers
-├── tests/                     # Unit, integration, and load tests
-├── GEMINI.md                  # AI-assisted development guide
-└── pyproject.toml             # Project dependencies
-```
+**Live server:** https://literature-reviewer-4055136070.us-central1.run.app/reviewer
 
-> 💡 **Tip:** Use [Antigravity CLI](https://antigravity.google/) for AI-assisted development - project context is pre-configured in `GEMINI.md`.
+## Example output
 
-## Requirements
+The agent produces a single self-contained [`literature-reviewer.html`](literature-reviewer.html) file — a static, offline capture of your ranked review queue. Open it directly in a browser (`file://`, no server needed).
 
-Before you begin, ensure you have:
-- **uv**: Python package manager (used for all dependency management in this project) - [Install](https://docs.astral.sh/uv/getting-started/installation/) ([add packages](https://docs.astral.sh/uv/concepts/dependencies/) with `uv add <package>`)
-- **agents-cli**: Agents CLI - Install with `uv tool install google-agents-cli`
-- **Google Cloud SDK**: For GCP services - [Install](https://cloud.google.com/sdk/docs/install)
+**Overall layout** — ranked queue, sidebar, interests panel, and per-paper cards:
 
+![Literature Reviewer — overall layout](docs/example-overview.png)
 
-## Quick Start
+**Paper card (detail)** — Aim → Main approach → Evaluation → Results (with quantitative task/data/metric/result bullets) → Limitation:
 
-Install `agents-cli` and its skills if not already installed:
+![Literature Reviewer — paper card detail](docs/example-card.png)
 
-```bash
-uvx google-agents-cli setup
-```
+See [`compbio-paper-review-SPEC.md`](compbio-paper-review-SPEC.md) for the complete specification of this output.
 
-Install required packages:
+## Building your own server
 
-```bash
-agents-cli install
-```
+See [`compbio-paper-review-SPEC.md`](compbio-paper-review-SPEC.md) for the full specification of the generated review app.
 
-Test the agent with a local web server:
+1. Have your API keys ready in the `.env` file. See `.env.example` for usage.
+2. Build by installing [`agents-cli`]([github.com/google/agents-cli](https://github.com/google/agents-cli)) and running:`agents-cli run "Build my review. Topics: your_topic_of_interest, link to my CV: https://your-url.com"`
 
-```bash
-agents-cli playground
-```
+## Agent workflow
 
-You can also use features from the [ADK](https://adk.dev/) CLI with `uv run adk`.
+![1783389818754](image/README/1783389818754.png)
 
-## Commands
-
-| Command              | Description                                                                                 |
-| -------------------- | ------------------------------------------------------------------------------------------- |
-| `agents-cli install` | Install dependencies using uv                                                         |
-| `agents-cli playground` | Launch local development environment                                                  |
-| `agents-cli lint`    | Run code quality checks                                                               |
-| `agents-cli eval`    | Evaluate agent behavior (generate, grade, analyze, and more — see `agents-cli eval --help`) |
-| `uv run pytest tests/unit tests/integration` | Run unit and integration tests                                                        |
-| `agents-cli deploy`  | Deploy agent to Agent Runtime                                                                |
-| `agents-cli publish gemini-enterprise` | Register deployed agent to Gemini Enterprise                    || [A2A Inspector](https://github.com/a2aproject/a2a-inspector) | Launch A2A Protocol Inspector                                                        |
-
-## 🛠️ Project Management
-
-| Command | What It Does |
-|---------|--------------|
-| `agents-cli scaffold enhance` | Add CI/CD pipelines and Terraform infrastructure |
-| `agents-cli infra cicd` | One-command setup of entire CI/CD pipeline + infrastructure |
-| `agents-cli scaffold upgrade` | Auto-upgrade to latest version while preserving customizations |
-
----
-
-## Development
-
-Edit your agent logic in `app/agent.py` and test with `agents-cli playground` - it auto-reloads on save.
-
-## Deployment
-
-```bash
-gcloud config set project <your-project-id>
-agents-cli deploy
-```
-
-To add CI/CD and Terraform, run `agents-cli scaffold enhance`.
-To set up your production infrastructure, run `agents-cli infra cicd`.
-
-## Observability
-
-Built-in telemetry exports to Cloud Trace, BigQuery, and Cloud Logging.
-
-## Security
-
-The agent fetches **user-supplied URLs** (`load_web_page` on the CV) and ingests
-untrusted web/API text, so guardrails live in [`app/security.py`](app/security.py)
-as ADK callbacks on the scope agent:
-
-- **SSRF defense** (`url_ssrf_guard`, a `before_tool_callback`) — before any fetch,
-  enforces an http/https scheme allowlist and resolves the host, rejecting every
-  non-public address: loopback, RFC-1918 private ranges, and link-local — including
-  the cloud **metadata** endpoint (`169.254.169.254` / `metadata.google.internal`).
-  All resolved IPs are checked, so a public name pointing at an internal address
-  (DNS rebinding) is blocked too.
-- **Prompt-injection / input-abuse guard** (`injection_guard`, a
-  `before_model_callback`) — caps input size and refuses known instruction-override
-  payloads before they reach the model.
-- **Model-layer safety settings** ([`app/models.py`](app/models.py) `safety_config()`)
-  — Gemini harm categories blocked at `MEDIUM_AND_ABOVE` on the agents that read
-  untrusted text.
-- **Stored-XSS defense** ([`app/render.py`](app/render.py) `_json_for_script()`) —
-  paper data is `\uXXXX`-escaped when embedded in the generated file's `<script>`
-  block, so a hostile paper title can't break out of the tag.
-
-Tests: [`tests/unit/test_security.py`](tests/unit/test_security.py)
-(`uv run pytest tests/unit`).
-
-## A2A Inspector
-
-This agent supports the [A2A Protocol](https://a2a-protocol.org/). Use the [A2A Inspector](https://github.com/a2aproject/a2a-inspector) to test interoperability.
-See the [A2A Inspector docs](https://github.com/a2aproject/a2a-inspector) for details.
+Generated with `agents-cli playground`. `root-agent` sequentially runs `scope_agent`, `research_fanout`, and `rank_agent`.

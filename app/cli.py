@@ -20,9 +20,10 @@ this *asks* the user for a CV URL and/or research topics, then drives the ADK
 pipeline programmatically with a Runner and streams progress to the terminal.
 
 Run:
-    uv run python -m app.cli                     # interactive prompts
-    uv run python -m app.cli --topics "a; b; c"  # non-interactive
-    uv run python -m app.cli --cv URL --open     # open the result in a browser
+    uv run python -m app.cli                      # interactive prompts
+    uv run python -m app.cli "recent scRNA papers" # free-form natural language
+    uv run python -m app.cli --topics "a; b; c"   # non-interactive, structured
+    uv run python -m app.cli --cv URL --open      # open the result in a browser
 """
 
 from __future__ import annotations
@@ -108,6 +109,13 @@ def _run_remote(message: str, url: str) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Generate a computational-biology paper review.")
+    ap.add_argument(
+        "prompt",
+        nargs="*",
+        help="Free-form natural-language request, sent verbatim to the agent "
+        "(e.g. \"recent single-cell foundation-model papers for a variant-effect PI\"). "
+        "Takes precedence over --cv/--topics.",
+    )
     ap.add_argument("--cv", default=None, help="CV / website URL")
     ap.add_argument("--topics", default=None, help="Research topics/keywords, ';'-separated")
     ap.add_argument("--model", default=None, help="Override REVIEW_MODEL for this run")
@@ -118,7 +126,9 @@ def main() -> None:
     if args.model:
         os.environ["REVIEW_MODEL"] = args.model
 
-    if args.cv or args.topics:
+    if args.prompt:
+        message = " ".join(args.prompt)  # free-form NL, sent verbatim
+    elif args.cv or args.topics:
         message = _build_message(args.cv or "", args.topics or "")
     else:
         message = _prompt_inputs()

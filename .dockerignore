@@ -1,0 +1,21 @@
+# Keep the build context (and image) minimal. The Dockerfile COPYs only
+# pyproject/README/uv.lock, ./app, and ./literature-reviewer.html; everything
+# below is never needed at build or run time.
+
+.git/
+.venv/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Standalone bring-your-own-key server -- superseded by app/byo_review.py and
+# never part of the real deployment.
+deployment/
+
+# Local-only assets and secrets (Cloud Run injects env at runtime).
+docs/
+tests/
+.env
+.env.example
+*.log
