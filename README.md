@@ -20,13 +20,44 @@ The server renders your review as a single self-contained page — an interactiv
 
 See [`compbio-paper-review-SPEC.md`](compbio-paper-review-SPEC.md) for the complete specification of this output.
 
-## Deploy your own server
+## Run or deploy your own server
 
-The app ships as a container ([`Dockerfile`](Dockerfile)) and deploys to **Google Cloud Run** with the [Agents CLI](https://github.com/google/agents-cli). Infrastructure is Terraform under [`deployment/terraform/`](deployment/terraform/). See [`compbio-paper-review-SPEC.md`](compbio-paper-review-SPEC.md) for the full specification of the generated review app.
+**Using the hosted app needs no setup** — open the live URL and paste your own model API key (Gemini, Anthropic, or OpenAI) in the interests panel; it is used per-request and never stored. Reviews are always generated on the caller's key, so the server holds no model credentials of its own.
 
-1. Set your API keys in the `.env` file. See `.env.example` for usage.
-2. Install `agents-cli`: `uv tool install google-agents-cli`.
-3. Scaffold & deploy with `agents-cli deploy`, or run the server locally.
+To run your **own copy**, the server needs **Google Cloud credentials** — it calls `google.auth.default()` and initializes Cloud Logging at startup ([app/fast_api_app.py](app/fast_api_app.py)). Copy [`.env.example`](.env.example) to `.env`, then:
+
+1. `gcloud auth application-default login`
+2. set `GOOGLE_CLOUD_PROJECT` (and `GOOGLE_CLOUD_LOCATION=global`) in `.env`
+
+No server-side model key is required for the public review endpoints. *(Only if you enable the ADK agent API — `ENABLE_AGENT_API=true` — do you also need a model backend: Vertex AI by default, or `GEMINI_API_KEY`, or `ANTHROPIC_API_KEY` + `REVIEW_MODEL=anthropic/claude-sonnet-5`.)* Optional: `OPENALEX_MAILTO` for the OpenAlex polite pool.
+
+### With Docker (recommended — reproducible)
+
+The repo ships a [`Dockerfile`](Dockerfile) pinning Python 3.12 + `uv` on port 8080 — no local Python/uv install needed. Docker packages the code and dependencies, but not your Google credentials, so mount them in:
+
+```bash
+docker build -t literature-reviewer .
+docker run --env-file .env -p 8080:8080 \
+  -v ~/.config/gcloud/application_default_credentials.json:/adc.json:ro \
+  -e GOOGLE_APPLICATION_CREDENTIALS=/adc.json \
+  literature-reviewer
+# → open http://localhost:8080/reviewer
+```
+
+### Without Docker
+
+```bash
+uv sync                                                          # install deps (Python 3.11–3.13)
+uv run uvicorn app.fast_api_app:app --host 0.0.0.0 --port 8080
+```
+
+### Deploy to Cloud Run
+
+On Cloud Run the credentials come from the service account automatically. `agents-cli deploy` (from the [Agents CLI](https://github.com/google/agents-cli): `uv tool install google-agents-cli`) builds the same container and ships it to **Google Cloud Run**. Infrastructure is Terraform under [`deployment/terraform/`](deployment/terraform/). See [`compbio-paper-review-SPEC.md`](compbio-paper-review-SPEC.md) for the full specification of the generated review app.
+
+## Model-agnostic by design
+
+Model choice is a **config knob** (`REVIEW_MODEL`), never chat input. A bare Gemini id runs ADK-native; a LiteLLM `provider/model` id (e.g. `anthropic/claude-sonnet-5`, `openai/gpt-4o`) routes through LiteLLM. The hosted BYO-key server supports Gemini, Anthropic, and OpenAI behind one `call_llm`, with loose/repairing JSON parsing so a truncated or fenced response still yields a valid review. Because search runs on keyless tools rather than provider-specific grounding, swapping models changes nothing downstream.
 
 ## Agent workflow
 
