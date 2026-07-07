@@ -1,4 +1,4 @@
-# Literature Reviewer
+# Literature Reviewer Agent
 
 [![Server status](https://img.shields.io/website?url=https%3A%2F%2Fliterature-reviewer-4055136070.us-central1.run.app%2Fhealth&up_message=online&down_message=offline&label=server)](https://literature-reviewer-4055136070.us-central1.run.app/reviewer)
 
