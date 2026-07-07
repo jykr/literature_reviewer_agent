@@ -18,7 +18,7 @@ The server renders your review as a single self-contained page — an interactiv
 
 ![Literature Reviewer — paper card detail](docs/example-card.png)
 
-See [`compbio-paper-review-SPEC.md`](compbio-paper-review-SPEC.md) for the complete specification of this output.
+See [`paper-review-SPEC.md`](paper-review-SPEC.md) for the complete specification of this output.
 
 ## Run or deploy your own server
 
@@ -53,7 +53,7 @@ uv run uvicorn app.fast_api_app:app --host 0.0.0.0 --port 8080
 
 ### Deploy to Cloud Run
 
-On Cloud Run the credentials come from the service account automatically. `agents-cli deploy` (from the [Agents CLI](https://github.com/google/agents-cli): `uv tool install google-agents-cli`) builds the same container and ships it to **Google Cloud Run**. Infrastructure is Terraform under [`deployment/terraform/`](deployment/terraform/). See [`compbio-paper-review-SPEC.md`](compbio-paper-review-SPEC.md) for the full specification of the generated review app.
+On Cloud Run the credentials come from the service account automatically. `agents-cli deploy` (from the [Agents CLI](https://github.com/google/agents-cli): `uv tool install google-agents-cli`) builds the same container and ships it to **Google Cloud Run**. Infrastructure is Terraform under [`deployment/terraform/`](deployment/terraform/). See [`paper-review-SPEC.md`](paper-review-SPEC.md) for the full specification of the generated review app.
 
 ## Domain-agnostic by design
 

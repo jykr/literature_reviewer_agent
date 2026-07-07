@@ -15,7 +15,7 @@
 
 """Pydantic data models shared across the review pipeline.
 
-These mirror the data model in compbio-paper-review-SPEC.md (§3). The ranker
+These mirror the data model in paper-review-SPEC.md (§3). The ranker
 agent emits a ``ReviewQueue`` via ``output_schema``; the HTML assembler consumes
 it to render the self-contained ``literature-reviewer.html`` app.
 """
