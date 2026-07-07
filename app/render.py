@@ -286,6 +286,9 @@ header.top .crit{color:var(--muted);font-size:13px;max-width:70ch}
 .iadd{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px}
 .iadd select,.iadd input{font:inherit;padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:#fff}
 .iadd input{min-width:260px;flex:1 1 260px}
+.mset{display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap;margin-right:12px}
+.mset select,.mset input{font:inherit;padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.mset input{min-width:200px}
 .iactions{display:flex;gap:12px;align-items:center;margin-top:10px;flex-wrap:wrap}
 .regen{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}
 .regen:hover{background:#255e91}
@@ -386,6 +389,15 @@ dl dd ul{margin:4px 0;padding-left:18px}
     <button class="btn" id="iaddbtn">&#65291; Add interest</button>
   </div>
   <div class="iactions">
+    <span class="mset">
+      <select id="provider" aria-label="Model provider">
+        <option value="gemini">Gemini (AI Studio)</option>
+        <option value="anthropic">Anthropic (Claude)</option>
+        <option value="openai">OpenAI</option>
+      </select>
+      <input id="model" type="text" placeholder="model id" aria-label="Model id">
+      <input id="apikey" type="password" placeholder="Your API key (not stored)" autocomplete="off" aria-label="Your API key">
+    </span>
     <button class="btn regen" id="regen">&#8635; Regenerate review</button>
     <span class="istatus" id="istatus"></span>
   </div>
@@ -759,13 +771,18 @@ function doneMsg(){
 }
 async function regenerate(){
   if(!INPUTS.length){ setStatus('Add at least one interest first.'); return; }
+  const keyEl = document.getElementById('apikey');
+  const key = (keyEl ? keyEl.value : '').trim();
+  if(!key){ setStatus('Enter your API key first.'); if(keyEl) keyEl.focus(); return; }
+  const provider = (document.getElementById('provider')||{}).value || 'gemini';
+  const model = ((document.getElementById('model')||{}).value || '').trim();
   const btn = document.getElementById('regen');
   btn.disabled = true;
   setStatus('Starting…');
   try{
     const res = await fetch('/review/stream', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({inputs: INPUTS.map(i=>({kind:i.kind, value:i.value}))})
+      body: JSON.stringify({inputs: INPUTS.map(i=>({kind:i.kind, value:i.value})), provider, model, apiKey:key})
     });
     if(!res.ok || !res.body){
       let detail=''; try{ detail=(await res.json()).detail||''; }catch(_){}
@@ -798,6 +815,24 @@ async function regenerate(){
   }finally{ btn.disabled = false; }
 }
 document.getElementById('regen').addEventListener('click', regenerate);
+
+// BYO model settings: remember provider/model, default the model per provider.
+// (The API key is deliberately NOT persisted — it lives only in the field.)
+(function(){
+  const prov = document.getElementById('provider'), mdl = document.getElementById('model');
+  if(!prov || !mdl) return;
+  const DEF = {gemini:'gemini-flash-latest', anthropic:'claude-sonnet-5', openai:'gpt-4o'};
+  const MS = 'byo-model-cfg-v1';
+  try{ const c = JSON.parse(localStorage.getItem(MS)||'{}');
+    if(c.provider) prov.value = c.provider; if(c.model) mdl.value = c.model; }catch(e){}
+  if(!mdl.value) mdl.value = DEF[prov.value] || '';
+  const save = ()=> localStorage.setItem(MS, JSON.stringify({provider:prov.value, model:mdl.value}));
+  prov.addEventListener('change', ()=>{
+    if(!mdl.value || Object.values(DEF).includes(mdl.value)) mdl.value = DEF[prov.value] || '';
+    save();
+  });
+  mdl.addEventListener('change', save);
+})();
 
 renderInputs();
 render();

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Recent Computational Biology Review Queue</title>
+<title>Recent Literature Review Queue</title>
 <style>
 :root{
   --bg:#f6f7f9; --card:#fff; --ink:#1a1d21; --muted:#5b6570; --line:#e3e7ec;
@@ -38,6 +38,9 @@ header.top .crit{color:var(--muted);font-size:13px;max-width:70ch}
 .iadd{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px}
 .iadd select,.iadd input{font:inherit;padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:#fff}
 .iadd input{min-width:260px;flex:1 1 260px}
+.mset{display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap;margin-right:12px}
+.mset select,.mset input{font:inherit;padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.mset input{min-width:200px}
 .iactions{display:flex;gap:12px;align-items:center;margin-top:10px;flex-wrap:wrap}
 .regen{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}
 .regen:hover{background:#255e91}
@@ -118,7 +121,7 @@ dl dd ul{margin:4px 0;padding-left:18px}
 </head>
 <body>
 <header class="top">
-  <h1>Recent Computational Biology Review Queue</h1>
+  <h1>Recent Literature Review Queue</h1>
   <p class="sub">Ranked, taggable triage of recent papers &mdash; tailored to: <em>Computational biologist working at the interface of machine learning and molecular/genomic biology. Core areas: protein structure prediction &amp; design, genomic variant/regulatory-effect prediction, single-cell genomics, and biological foundation/language models, with applied interest in molecular ML for drug discovery. Methods-oriented, mid-to-senior, publishes at the ML-for-biology venues.</em></p>
   <p class="crit">Ranked by a blend of field impact, relevance to your work, and author/venue
     credibility. Scores are editorial judgments, not computed. Tag papers and copy clean notes
@@ -138,6 +141,15 @@ dl dd ul{margin:4px 0;padding-left:18px}
     <button class="btn" id="iaddbtn">&#65291; Add interest</button>
   </div>
   <div class="iactions">
+    <span class="mset">
+      <select id="provider" aria-label="Model provider">
+        <option value="gemini">Gemini (AI Studio)</option>
+        <option value="anthropic">Anthropic (Claude)</option>
+        <option value="openai">OpenAI</option>
+      </select>
+      <input id="model" type="text" placeholder="model id" aria-label="Model id">
+      <input id="apikey" type="password" placeholder="Your API key (not stored)" autocomplete="off" aria-label="Your API key">
+    </span>
     <button class="btn regen" id="regen">&#8635; Regenerate review</button>
     <span class="istatus" id="istatus"></span>
   </div>
@@ -184,7 +196,7 @@ dl dd ul{margin:4px 0;padding-left:18px}
 <script id="inputs" type="application/json">[]</script>
 <script>
 let TAGS = {"1": {"app": ["Multi-omic modeling", "Sequence annotation"], "method": ["Instruction-tuned LLM", "Multimodal foundation model"]}, "2": {"app": ["De novo binder design", "Therapeutics"], "method": ["Diffusion generative model", "Structure-based design"]}, "3": {"app": ["Virtual cell", "Perturbation prediction"], "method": ["Single-cell foundation model", "Benchmark design"]}, "4": {"app": ["Regulatory genomics", "Variant effect"], "method": ["DNA foundation model", "Benchmarking"]}, "5": {"app": ["Protein engineering", "Variant effect"], "method": ["Protein language model", "Biophysics-informed ML"]}, "6": {"app": ["Regulatory genomics", "Functional element discovery"], "method": ["Genomic language model", "In-silico mutagenesis"]}, "7": {"app": ["Single-cell genomics", "Data exploration"], "method": ["Multimodal foundation model", "Cell + language learning"]}, "8": {"app": ["Regulatory genomics", "Variant effect"], "method": ["DNA language model", "Representation probing"]}, "9": {"app": ["Protein-ligand co-folding", "Structure prediction"], "method": ["Co-folding networks", "Model interpretability"]}, "10": {"app": ["Single-cell genomics", "Model evaluation"], "method": ["Single-cell foundation model", "Biology-driven probing"]}, "11": {"app": ["Single-cell genomics", "Cell-type annotation"], "method": ["Single-cell foundation model", "Transfer learning"]}, "12": {"app": ["RNA structure prediction", "RNA biology"], "method": ["RNA language model", "Transfer learning"]}};
-let APPROACH = {"1": {"algo": "Multimodal genomic LLM", "nov": 70, "aim": "Unify DNA/RNA/protein tasks behind one conversational interface. Limitation addressed: fragmentation of one-off task-specific models.", "data": "Curated multi-omic instruction corpus over sequence understanding + generation tasks.", "model": "Instruction-tuned multimodal transformer that routes across biological sequence modalities from natural-language prompts.", "bio": "Can a single agent answer heterogeneous molecular-biology questions across sequence types?"}, "2": {"algo": "Deep generative macrocycle design", "nov": 85, "aim": "Design high-affinity macrocyclic binders from scratch. Limitation addressed: lack of general methods for programmable macrocycle binders.", "data": "Protein-structure priors plus designed-and-tested macrocycle set.", "model": "Deep generative/structure-prediction stack adapted to macrocyclic constraints, filtered by predicted affinity then wet-lab validated.", "bio": "Can we program high-affinity binders in a synthesizable, drug-like chemotype?"}, "3": {"algo": "Virtual-cell benchmark", "nov": 55, "aim": "Define a Turing-test-style benchmark for virtual cells. Limitation addressed: no shared success criterion for single-cell foundation models.", "data": "Curated single-cell perturbation datasets held out as the challenge set.", "model": "A community challenge scoring models on predicting unseen cellular perturbation responses.", "bio": "Can a model predict how a cell responds to an unseen perturbation?"}, "4": {"algo": "DNA-FM benchmark suite", "nov": 45, "aim": "Compare DNA foundation models under one protocol. Limitation addressed: incomparable, self-reported DNA-FM results.", "data": "Multiple genomic/genetic task datasets standardized into a benchmark.", "model": "Uniform fine-tuning/probing harness across pretrained DNA foundation models.", "bio": "Which genomic foundation model actually performs best, and on what?"}, "5": {"algo": "Biophysics-conditioned PLM", "nov": 65, "aim": "Improve fitness/variant-effect prediction for engineering. Limitation addressed: sequence-only PLMs ignore structure/energetics.", "data": "Protein sequences + structural/biophysical features; DMS fitness benchmarks for eval.", "model": "Protein language model augmented with biophysical priors, trained to predict mutational effects.", "bio": "How do mutations change protein fitness, and can biophysics-aware PLMs predict it better?"}, "6": {"algo": "Nucleotide-dependency analysis", "nov": 65, "aim": "Detect functional elements via genomic-LM dependencies. Limitation addressed: black-box genomic LMs give predictions but little mechanism.", "data": "Reference genomes probed by the LM; known functional annotations for validation.", "model": "Systematic paired-nucleotide perturbation of a genomic LM to map dependencies.", "bio": "Which bases interact functionally, and can a language model reveal them?"}, "7": {"algo": "Chat-based single-cell model", "nov": 60, "aim": "Query single-cell data in natural language. Limitation addressed: expert-only, code-heavy single-cell analysis.", "data": "Single-cell expression datasets paired with textual annotations/tasks.", "model": "Multimodal model aligning cell representations with a language interface.", "bio": "Can researchers explore cell atlases by simply asking questions?"}, "8": {"algo": "DNA-LM probing benchmark", "nov": 45, "aim": "Measure whether pretrained DNA LMs encode useful regulatory signal. Limitation addressed: hype without controlled comparison to supervised baselines.", "data": "Regulatory-genomics datasets used to probe frozen/fine-tuned DNA-LM embeddings.", "model": "Probing/fine-tuning of several pretrained DNA language models against supervised CNN baselines.", "bio": "Do genomic foundation models actually capture cis-regulatory grammar?"}, "9": {"algo": "Co-folding physics probing", "nov": 50, "aim": "Test whether co-folding models learn interaction physics. Limitation addressed: pose accuracy metrics hide non-physical reasoning.", "data": "Protein-ligand complexes with controlled physical perturbations.", "model": "Systematic probing of AlphaFold3-class co-folding networks for physical consistency.", "bio": "Do neural co-folding models understand protein-ligand physics, or pattern-match?"}, "10": {"algo": "scFM biology-driven probing", "nov": 40, "aim": "Assess what single-cell foundation models truly learn. Limitation addressed: benchmark-only claims detached from biology.", "data": "Single-cell datasets with biologically meaningful evaluation tasks.", "model": "Controlled probing of scFMs against biology-grounded expectations.", "bio": "Do single-cell foundation models capture real biological structure?"}, "11": {"algo": "scFM survey/taxonomy", "nov": 30, "aim": "Organize single-cell foundation models and their use cases. Limitation addressed: fragmented, hard-to-compare scFM literature.", "data": "Large-scale single-cell atlases underlying the surveyed models.", "model": "Comparative synthesis of transformer-based single-cell foundation models (pretraining + fine-tuning regimes).", "bio": "How should AI foundation models be built and used for single-cell biology?"}, "12": {"algo": "RNA language model (RiNALMo)", "nov": 60, "aim": "Build a general RNA LM that transfers to structure prediction. Limitation addressed: task-specific RNA models with limited transfer.", "data": "Large unlabeled RNA sequence corpus for pretraining; structure datasets for eval.", "model": "Transformer RNA language model pretrained then applied to structure-prediction tasks.", "bio": "Can a pretrained RNA language model predict RNA structure across families?"}};
+let APPROACH = {"1": {"algo": "Multimodal genomic LLM", "nov": 70, "aim": "Unify DNA/RNA/protein tasks behind one conversational interface. Limitation addressed: fragmentation of one-off task-specific models.", "data": "Curated multi-omic instruction corpus over sequence understanding + generation tasks.", "model": "Instruction-tuned multimodal transformer that routes across biological sequence modalities from natural-language prompts.", "question": "Can a single agent answer heterogeneous molecular-biology questions across sequence types?"}, "2": {"algo": "Deep generative macrocycle design", "nov": 85, "aim": "Design high-affinity macrocyclic binders from scratch. Limitation addressed: lack of general methods for programmable macrocycle binders.", "data": "Protein-structure priors plus designed-and-tested macrocycle set.", "model": "Deep generative/structure-prediction stack adapted to macrocyclic constraints, filtered by predicted affinity then wet-lab validated.", "question": "Can we program high-affinity binders in a synthesizable, drug-like chemotype?"}, "3": {"algo": "Virtual-cell benchmark", "nov": 55, "aim": "Define a Turing-test-style benchmark for virtual cells. Limitation addressed: no shared success criterion for single-cell foundation models.", "data": "Curated single-cell perturbation datasets held out as the challenge set.", "model": "A community challenge scoring models on predicting unseen cellular perturbation responses.", "question": "Can a model predict how a cell responds to an unseen perturbation?"}, "4": {"algo": "DNA-FM benchmark suite", "nov": 45, "aim": "Compare DNA foundation models under one protocol. Limitation addressed: incomparable, self-reported DNA-FM results.", "data": "Multiple genomic/genetic task datasets standardized into a benchmark.", "model": "Uniform fine-tuning/probing harness across pretrained DNA foundation models.", "question": "Which genomic foundation model actually performs best, and on what?"}, "5": {"algo": "Biophysics-conditioned PLM", "nov": 65, "aim": "Improve fitness/variant-effect prediction for engineering. Limitation addressed: sequence-only PLMs ignore structure/energetics.", "data": "Protein sequences + structural/biophysical features; DMS fitness benchmarks for eval.", "model": "Protein language model augmented with biophysical priors, trained to predict mutational effects.", "question": "How do mutations change protein fitness, and can biophysics-aware PLMs predict it better?"}, "6": {"algo": "Nucleotide-dependency analysis", "nov": 65, "aim": "Detect functional elements via genomic-LM dependencies. Limitation addressed: black-box genomic LMs give predictions but little mechanism.", "data": "Reference genomes probed by the LM; known functional annotations for validation.", "model": "Systematic paired-nucleotide perturbation of a genomic LM to map dependencies.", "question": "Which bases interact functionally, and can a language model reveal them?"}, "7": {"algo": "Chat-based single-cell model", "nov": 60, "aim": "Query single-cell data in natural language. Limitation addressed: expert-only, code-heavy single-cell analysis.", "data": "Single-cell expression datasets paired with textual annotations/tasks.", "model": "Multimodal model aligning cell representations with a language interface.", "question": "Can researchers explore cell atlases by simply asking questions?"}, "8": {"algo": "DNA-LM probing benchmark", "nov": 45, "aim": "Measure whether pretrained DNA LMs encode useful regulatory signal. Limitation addressed: hype without controlled comparison to supervised baselines.", "data": "Regulatory-genomics datasets used to probe frozen/fine-tuned DNA-LM embeddings.", "model": "Probing/fine-tuning of several pretrained DNA language models against supervised CNN baselines.", "question": "Do genomic foundation models actually capture cis-regulatory grammar?"}, "9": {"algo": "Co-folding physics probing", "nov": 50, "aim": "Test whether co-folding models learn interaction physics. Limitation addressed: pose accuracy metrics hide non-physical reasoning.", "data": "Protein-ligand complexes with controlled physical perturbations.", "model": "Systematic probing of AlphaFold3-class co-folding networks for physical consistency.", "question": "Do neural co-folding models understand protein-ligand physics, or pattern-match?"}, "10": {"algo": "scFM biology-driven probing", "nov": 40, "aim": "Assess what single-cell foundation models truly learn. Limitation addressed: benchmark-only claims detached from biology.", "data": "Single-cell datasets with biologically meaningful evaluation tasks.", "model": "Controlled probing of scFMs against biology-grounded expectations.", "question": "Do single-cell foundation models capture real biological structure?"}, "11": {"algo": "scFM survey/taxonomy", "nov": 30, "aim": "Organize single-cell foundation models and their use cases. Limitation addressed: fragmented, hard-to-compare scFM literature.", "data": "Large-scale single-cell atlases underlying the surveyed models.", "model": "Comparative synthesis of transformer-based single-cell foundation models (pretraining + fine-tuning regimes).", "question": "How should AI foundation models be built and used for single-cell biology?"}, "12": {"algo": "RNA language model (RiNALMo)", "nov": 60, "aim": "Build a general RNA LM that transfers to structure prediction. Limitation addressed: task-specific RNA models with limited transfer.", "data": "Large unlabeled RNA sequence corpus for pretraining; structure datasets for eval.", "model": "Transformer RNA language model pretrained then applied to structure-prediction tasks.", "question": "Can a pretrained RNA language model predict RNA structure across families?"}};
 let DATA = JSON.parse(document.getElementById('data').textContent);
 let CATEGORIES = JSON.parse(document.getElementById('cats').textContent) || [];
 // hydrate(): fold TAGS into each paper and normalise cats; re-run after regenerate.
@@ -195,13 +207,13 @@ function hydrate(){
 hydrate();
 
 const EVAL_LABELS = ['New metric:','New eval data:','Design & novelty:','Eval limits:'];
-const STORE = 'compbio-review-status-v1';
+const STORE = 'litreview-status-v1';
 let status = {};
 try { status = JSON.parse(localStorage.getItem(STORE)) || {}; } catch(e){ status = {}; }
 function saveStatus(){ localStorage.setItem(STORE, JSON.stringify(status)); }
 
 // ----- Interests (SPEC §2.0/§3d): INPUTS persisted; edited then regenerated -----
-const ISTORE = 'compbio-review-inputs-v1';
+const ISTORE = 'litreview-inputs-v1';
 let iseq = 0;
 function ensureIds(){ INPUTS.forEach(i => { if(i.id==null) i.id = 'i'+(++iseq); }); }
 let INPUTS;
@@ -254,7 +266,7 @@ function approachDD(p){
     + `<ul>`
     + (a.data ? `<li><b>Data:</b> ${esc(a.data)}</li>`:'')
     + (a.model ? `<li><b>Model:</b> ${esc(a.model)}</li>`:'')
-    + (a.bio ? `<li><b>Biological question:</b> ${esc(a.bio)}</li>`:'')
+    + (a.question ? `<li><b>Key question:</b> ${esc(a.question)}</li>`:'')
     + `</ul>`;
 }
 function evalDD(p){
@@ -366,7 +378,7 @@ function oneNoteHTML(p){
   const bul = [];
   if(a.data) bul.push(`<li><b>Data:</b> ${esc(a.data)}</li>`);
   if(a.model) bul.push(`<li><b>Model:</b> ${esc(a.model)}</li>`);
-  if(a.bio) bul.push(`<li><b>Biological question:</b> ${esc(a.bio)}</li>`);
+  if(a.question) bul.push(`<li><b>Key question:</b> ${esc(a.question)}</li>`);
   const resItems = (p.results||[]).filter(x=>x!=null && String(x).trim())
     .map(x=>`<li>${esc(x)}</li>`).join('');
   return `<div style="font-family:Calibri,sans-serif">
@@ -442,7 +454,7 @@ document.getElementById('tagfilter').addEventListener('click', e=>{
 });
 document.getElementById('copyview').addEventListener('click', ()=>{
   const rows = currentView();
-  const html = `<div style="font-family:Calibri,sans-serif"><h1>CompBio Review Queue (${rows.length} papers)</h1>`
+  const html = `<div style="font-family:Calibri,sans-serif"><h1>Literature Review Queue (${rows.length} papers)</h1>`
     + rows.map(oneNoteHTML).join('<hr>') + '</div>';
   copyHTML(html, `Copied ${rows.length} papers for OneNote`);
 });
@@ -500,7 +512,7 @@ function offlineFallback(){
   // No live backend (opened via file://, or server down): fall back to a
   // prompt the user can paste into the agent chat (Plan A behaviour).
   const lines = INPUTS.map(i=>`- ${IKIND_LABEL[i.kind]||i.kind}: ${i.value}`);
-  const prompt = 'Build my recent computational-biology review from these interest inputs:\n'
+  const prompt = 'Build my recent literature review from these interest inputs:\n'
     + lines.join('\n');
   copyText(prompt, 'No live backend — prompt copied to clipboard');
   setStatus('No live backend reachable. Copied a prompt to paste into the agent chat.');
@@ -511,13 +523,18 @@ function doneMsg(){
 }
 async function regenerate(){
   if(!INPUTS.length){ setStatus('Add at least one interest first.'); return; }
+  const keyEl = document.getElementById('apikey');
+  const key = (keyEl ? keyEl.value : '').trim();
+  if(!key){ setStatus('Enter your API key first.'); if(keyEl) keyEl.focus(); return; }
+  const provider = (document.getElementById('provider')||{}).value || 'gemini';
+  const model = ((document.getElementById('model')||{}).value || '').trim();
   const btn = document.getElementById('regen');
   btn.disabled = true;
   setStatus('Starting…');
   try{
     const res = await fetch('/review/stream', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({inputs: INPUTS.map(i=>({kind:i.kind, value:i.value}))})
+      body: JSON.stringify({inputs: INPUTS.map(i=>({kind:i.kind, value:i.value})), provider, model, apiKey:key})
     });
     if(!res.ok || !res.body){
       let detail=''; try{ detail=(await res.json()).detail||''; }catch(_){}
@@ -550,6 +567,24 @@ async function regenerate(){
   }finally{ btn.disabled = false; }
 }
 document.getElementById('regen').addEventListener('click', regenerate);
+
+// BYO model settings: remember provider/model, default the model per provider.
+// (The API key is deliberately NOT persisted — it lives only in the field.)
+(function(){
+  const prov = document.getElementById('provider'), mdl = document.getElementById('model');
+  if(!prov || !mdl) return;
+  const DEF = {gemini:'gemini-flash-latest', anthropic:'claude-sonnet-5', openai:'gpt-4o'};
+  const MS = 'byo-model-cfg-v1';
+  try{ const c = JSON.parse(localStorage.getItem(MS)||'{}');
+    if(c.provider) prov.value = c.provider; if(c.model) mdl.value = c.model; }catch(e){}
+  if(!mdl.value) mdl.value = DEF[prov.value] || '';
+  const save = ()=> localStorage.setItem(MS, JSON.stringify({provider:prov.value, model:mdl.value}));
+  prov.addEventListener('change', ()=>{
+    if(!mdl.value || Object.values(DEF).includes(mdl.value)) mdl.value = DEF[prov.value] || '';
+    save();
+  });
+  mdl.addEventListener('change', save);
+})();
 
 renderInputs();
 render();
