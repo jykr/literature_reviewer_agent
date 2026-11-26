@@ -17,26 +17,13 @@ The server renders your review as a single self-contained page — an interactiv
 
 ![Literature Reviewer — overall layout](docs/example-overview.png)
 
+
 **Paper card (detail)** — Aim → Main approach → Evaluation → Results (with quantitative task/data/metric/result bullets) → Limitation:
 
 <img src="docs/example-card.png" alt="Paper Triage — paper card detail" width="560">
 
 See [`paper-review-SPEC.md`](paper-review-SPEC.md) for the complete specification of this output.
 
-## Run or deploy your own server
-
-The page (titled **Paper Triage**) has an editable **researcher profile** under the title, used verbatim for the next review, and a setup panel in two blocks:
-
-- **Interests + Model:** 
-  - CV/papers/keywords
-  - Model API (Anthropic by default; Gemini, OpenAI, or **OpenRouter sign-in** via OAuth PKCE, so no key needs pasting), and 
-  - **Regenerate review** with live stage progress. Keys are used per request and never stored.
-- **Paperpile (optional, beta):** with a Paperpile API key 
-  - the review flags papers already in your library, 
-  - reads the PDFs you saved when a paper has no open full text, and 
-  - can include a label's papers (up to its 10 most recently added). 
-  - Papers can be added from each card (with the agent's notes) and removed again if they were added from the page. 
-  - **Check library** and **Re-read abstracts** update the current review without regenerating it.
 
 ## Pipeline
 
@@ -51,7 +38,7 @@ The page (titled **Paper Triage**) has an editable **researcher profile** under 
   | PubMed (E-utilities) | MEDLINE metadata, PubMed query syntax |
   | arXiv | cs / q-bio / stat / physics preprints |
   | bioRxiv / medRxiv | keyword search via Europe PMC's preprint index; DOI lookups (incl. "published as") via api.biorxiv.org |
-  - [Source](packages/paper-sources-mcp/)
+
   - **Use the MCP server elsewhere:** the pooled search runs as a standalone MCP server (`uv run paper-sources-mcp`; stdio by default, or `--transport streamable-http` to serve a URL), so any MCP client can use it. **[docs/paper-sources-mcp.md](docs/paper-sources-mcp.md)** has its tools, optional keys, and setup for Claude Code and Desktop, Cursor, Windsurf, VS Code, Gemini CLI, Codex CLI, and the MCP Python SDK, ADK and LangChain.
 
 - **Focus lens:** set `LC_REVIEW_FOCUS` to steer scope, search and ranking (e.g. frontier ML for genomics); unset, the app stays field-general.

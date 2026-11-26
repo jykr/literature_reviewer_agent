@@ -1,6 +1,6 @@
 # paper-sources MCP server
 
-A standalone [Model Context Protocol](https://modelcontextprotocol.io) server that pools scholarly search across five open sources. Any MCP client can use it: desktop chat apps, coding agents, IDEs, or your own agent code. It needs no API keys to work.
+A standalone [Model Context Protocol](https://modelcontextprotocol.io) server that pools scholarly search across five open sources.
 
 The Paper Triage apps use the same code: the ADK app calls it in-process, and the LangChain app launches this server over stdio.
 
@@ -21,7 +21,7 @@ Each paper record includes title, authors, venue and venue type, date, DOI/URL, 
 
 ## Install
 
-You need Python 3.11–3.13 and this repository. With [uv](https://docs.astral.sh/uv/), there's no separate install step: `uv run` creates the environment on first use.
+You need Python 3.11–3.13 and this repository. With [uv](https://docs.astral.sh/uv/), `uv run` creates the environment on first use.
 
 ```bash
 git clone https://github.com/jykr/paper_triage.git
