@@ -36,7 +36,7 @@ def _build_message(cv: str, topics: str) -> str:
 
 
 def _prompt_inputs() -> str:
-    print("\nRecent Literature Review Queue (LangGraph + paper-sources MCP)\n")
+    print("\nPaper Triage (LangGraph + paper-sources MCP)\n")
     while True:
         cv = input("CV / website URL (Enter to skip): ").strip()
         topics = input(
@@ -116,6 +116,12 @@ def main() -> None:
         help="Ignore cached research and manual-paper analyses (.lc_cache/).",
     )
     ap.add_argument(
+        "--profile",
+        default="",
+        help="Researcher profile shown in the report and used for relevance, "
+        "verbatim (otherwise the model writes one from your input).",
+    )
+    ap.add_argument(
         "--paperpile-profile",
         nargs="?",
         const="",
@@ -167,6 +173,7 @@ def main() -> None:
     elif args.focus is not None:
         os.environ["LC_REVIEW_FOCUS"] = args.focus
     message = " ".join(args.prompt) or _build_message(args.cv, args.topics)
+    message = message or args.profile  # a profile alone is enough to scope
     if not message and args.only_added:
         message = " "  # scope comes from the added papers themselves
     if not message and args.paperpile_profile is not None:
@@ -216,6 +223,7 @@ def main() -> None:
             include_collection=args.include_paperpile if use_paperpile else None,
             skip_research=args.only_added,
             added_since=since_date(args.added_since) if args.added_since else None,
+            profile=args.profile,
         )
 
     try:
