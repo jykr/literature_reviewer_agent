@@ -14,15 +14,30 @@ The server renders your review as a single self-contained page — an interactiv
 
 ![Literature Reviewer — overall layout](docs/example-overview.png)
 
-**Paper card (detail)** — Aim → Main approach → Evaluation → Results (with quantitative task/data/metric/result bullets) → Limitation:
+<!-- **Paper card (detail)** — Aim → Main approach → Evaluation → Results (with quantitative task/data/metric/result bullets) → Limitation:
 
-![Literature Reviewer — paper card detail](docs/example-card.png)
+![Literature Reviewer — paper card detail](docs/example-card.png) -->
 
 See [`paper-review-SPEC.md`](paper-review-SPEC.md) for the complete specification of this output.
 
 ## Run or deploy your own server
 
 **Using the hosted app needs no setup** — open the live URL and paste your own model API key (Gemini, Anthropic, or OpenAI) in the interests panel; it is used per-request and never stored. Reviews are always generated on the caller's key, so the server holds no model credentials of its own.
+
+The page (titled **Paper Triage**) has an editable **researcher profile** under the title, used verbatim for the next review, and a setup panel in two blocks:
+
+- **Interests + Model:** CV/papers/keywords, then the model API (Anthropic by default; Gemini, OpenAI, or **OpenRouter sign-in** via OAuth PKCE, so no key needs pasting), and **Regenerate review** with live stage progress. Keys are used per request and never stored.
+- **Paperpile (optional, beta):** with a Paperpile API key the review flags papers already in your library, reads the PDFs you saved when a paper has no open full text, and can include a label's papers (up to its 10 most recently added). Papers can be added from each card (with the agent's notes) and removed again if they were added from the page. **Check library** and **Re-read abstracts** update the current review without regenerating it.
+
+**Pipeline** (the ADK agent in [`app/agent.py`](app/agent.py); the hosted `/review` endpoints run the same agent on the caller's key):
+
+`intake` (paper links in the message) → `scope` → five parallel `researcher`s over pooled sources (OpenAlex, Europe PMC, PubMed, arXiv, bioRxiv/medRxiv) → `added_papers` → `rank` (batched; author-first credibility, coverage-first) → `deepen` (selected papers re-read from open full text: arXiv, PMC, Unpaywall) → `library` (Paperpile flags) → render.
+
+- **Integrity in code:** a paper is kept only if a search tool returned it, and its URL/DOI/venue/citations come from the tool record; full-text result bullets quoting numbers absent from the text are dropped.
+- **Contribution kinds**, not scores: *Application / resource*, *Adaptation* (existing components modified or combined) and *Algorithm*, highlighted when they apply (one or more). Main approach reads Key question → Data → Model → **Methodological novelty** (the concrete mechanism added).
+- **Writing style:** impersonal and evidence-focused (claims stated as reported, no promotional language), with per-field length limits.
+- **Focus lens:** set `LC_REVIEW_FOCUS` to steer scope, search and ranking (e.g. frontier ML for genomics); unset, the app stays field-general.
+- The review logic (verification, credibility rules, grounding) is shared with the LangChain variant in [`lc_app/core.py`](lc_app/core.py).
 
 To run your **own copy**, the server needs **Google Cloud credentials** — it calls `google.auth.default()` and initializes Cloud Logging at startup ([app/fast_api_app.py](app/fast_api_app.py)). Copy [`.env.example`](.env.example) to `.env`, then:
 
@@ -57,7 +72,7 @@ On Cloud Run the credentials come from the service account automatically. `agent
 
 ### Agent workflow
 
-![1783389818754](image/README/1783389818754.png)
+![1783389818754](image/README/agents_cli_graph.png)
 
 Generated with `agents-cli playground`. `root-agent` sequentially runs `scope_agent`, `research_fanout`, and `rank_agent`.
 
@@ -88,6 +103,7 @@ uv run --extra langchain review-lc --cv https://example.edu/~me --topics "a; b" 
 - **Full text, for the final selection only:** after ranking (which stays abstract-based), the selected papers are re-analyzed from full text: arXiv HTML/PDF, PMC (NCBI and Europe PMC, incl. author manuscripts), and legal open copies found by Unpaywall (`UNPAYWALL_EMAIL`); bioRxiv optionally via its official requester-pays S3 buckets (`LC_BIORXIV_S3=1` + AWS credentials). Result bullets quoting numbers absent from the text are dropped; papers without open full text are labeled "Abstract only".
 - **Paperpile (beta MCP, optional):** with `PAPERPILE_API_KEY` in `.env`, reviewed papers already in your library get an "In your Paperpile" badge. `--paperpile-profile [FOLDER]` adds up to 100 titles from your library (or one folder/label) to the request as an interest profile. `--save-to-paperpile [LABEL]` saves the reviewed papers under a label (default `review-lc`); existing copies only gain the label, and nothing is deleted or rewritten. `--include-paperpile "to read"` adds every paper in that folder/label to the review, analyzed like manually added papers and shown in purple with a "Paperpile: to read" badge (items without a DOI, arXiv id or paper URL, like tool web pages, are skipped). `--added-since 6m` (or a date) keeps only papers added to the library since then; Paperpile doesn't record when a label was applied. `--only-added` skips the literature search and reviews just the added papers. `--no-paperpile` skips Paperpile entirely. Check the connection with `python -m lc_app.paperpile`.
 - **Integrity in code:** a researcher's or ranker's paper is kept only if an MCP tool actually returned it during the run, and its URL/DOI/citation count are copied from the tool output.
+- **LangGraph dev server:** `uv run --extra langchain langgraph dev` serves the graph (`langgraph.json` → `lc_app/studio.py`) at http://127.0.0.1:2024, with API docs at `/docs` and LangGraph Studio for step-by-step runs. Input is `{"request": "..."}` plus optional `manual_ids`, `from_date`, `refresh`, `skip_research`, `add_to_previous`; the page is written to `.lc_cache/studio/` and the path is in the final `message`.
 - **Use the MCP server elsewhere:** `claude mcp add paper-sources -- uv run --directory "$PWD" --extra langchain paper-sources-mcp`. Optional env: `OPENALEX_API_KEY` (recommended: keyless OpenAlex requests share a ~100-search/day per-IP budget), `NCBI_API_KEY`.
 
 ### Agent workflow

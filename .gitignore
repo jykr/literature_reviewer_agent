@@ -222,3 +222,8 @@ kaggle_writeup.md
 # AWS access-key downloads from the IAM console
 *accessKeys*.csv
 *credentials*.csv
+.langgraph_api/
+
+# Editor swap files (e.g. .env.swp can hold secrets)
+*.swp
+*.swo
