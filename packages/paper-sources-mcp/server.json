@@ -1,0 +1,52 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.jykr/paper-sources",
+  "title": "Paper Sources",
+  "description": "Pooled paper search across OpenAlex, Europe PMC, PubMed, arXiv and bioRxiv, with full text.",
+  "repository": {
+    "url": "https://github.com/jykr/literature_reviewer_agent",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "paper-sources-mcp",
+      "version": "0.1.0",
+      "runtimeHint": "uvx",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "OPENALEX_API_KEY",
+          "description": "OpenAlex API key for your own daily budget (optional)",
+          "isRequired": false,
+          "isSecret": true,
+          "format": "string"
+        },
+        {
+          "name": "OPENALEX_MAILTO",
+          "description": "Contact email for OpenAlex's polite pool (optional)",
+          "isRequired": false,
+          "isSecret": false,
+          "format": "string"
+        },
+        {
+          "name": "NCBI_API_KEY",
+          "description": "NCBI key: PubMed/PMC at 10 requests/s instead of 3 (optional)",
+          "isRequired": false,
+          "isSecret": true,
+          "format": "string"
+        },
+        {
+          "name": "UNPAYWALL_EMAIL",
+          "description": "Contact email that enables Unpaywall open-access full text (optional)",
+          "isRequired": false,
+          "isSecret": false,
+          "format": "string"
+        }
+      ]
+    }
+  ]
+}

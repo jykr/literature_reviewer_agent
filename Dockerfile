@@ -19,6 +19,8 @@ RUN pip install --no-cache-dir uv==0.8.13
 WORKDIR /code
 
 COPY ./pyproject.toml ./README.md ./uv.lock* ./
+# Workspace member: the paper-sources-mcp package (installed by uv sync).
+COPY ./packages ./packages
 
 COPY ./app ./app
 # Shared review logic, pooled paper sources and Paperpile client (imported by app/).

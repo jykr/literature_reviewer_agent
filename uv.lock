@@ -16,6 +16,12 @@ resolution-markers = [
     "(python_full_version < '3.12' and platform_machine != 'x86_64' and sys_platform == 'darwin') or (python_full_version < '3.12' and sys_platform != 'darwin' and sys_platform != 'emscripten' and sys_platform != 'win32')",
 ]
 
+[manifest]
+members = [
+    "literature-reviewer",
+    "paper-sources-mcp",
+]
+
 [[package]]
 name = "a2a-sdk"
 version = "0.3.26"
@@ -2406,6 +2412,7 @@ dependencies = [
     { name = "lxml" },
     { name = "mcp" },
     { name = "opentelemetry-instrumentation-google-genai" },
+    { name = "paper-sources-mcp" },
     { name = "pypdf" },
     { name = "python-multipart" },
     { name = "sqlalchemy" },
@@ -2465,6 +2472,7 @@ requires-dist = [
     { name = "lxml", specifier = ">=6.1.1" },
     { name = "mcp", specifier = ">=1.9,<2" },
     { name = "opentelemetry-instrumentation-google-genai", specifier = ">=0.1.0,<1.0.0" },
+    { name = "paper-sources-mcp", editable = "packages/paper-sources-mcp" },
     { name = "pypdf", specifier = ">=5" },
     { name = "python-multipart", specifier = ">=0.0.20,<1.0.0" },
     { name = "ruff", marker = "extra == 'lint'", specifier = ">=0.4.6,<1.0.0" },
@@ -3290,6 +3298,36 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/fb/e7/8eedac9e7443651a4400d2ec8ebfb4be3be43cc3ec8ac3d5fbdbf7f0e149/pandas-3.0.4-cp313-cp313-win_amd64.whl", hash = "sha256:63468a898ba7b54280fc6db21833cf99b9b62b2b54b5d5d10b5ab813ce100fbf", size = 9650344, upload-time = "2026-06-28T15:30:56.716Z" },
     { url = "https://files.pythonhosted.org/packages/fc/36/5f00ada639c67062720dc813a72d6dcca8eb86bc55620d2bb17dcf284073/pandas-3.0.4-cp313-cp313-win_arm64.whl", hash = "sha256:5f9538b9d13b974a3a7d40c23b8d66f41114ceffe6c586f38efb8ed71d778caa", size = 8958077, upload-time = "2026-06-28T15:30:59.462Z" },
 ]
+
+[[package]]
+name = "paper-sources-mcp"
+version = "0.1.0"
+source = { editable = "packages/paper-sources-mcp" }
+dependencies = [
+    { name = "beautifulsoup4" },
+    { name = "httpx" },
+    { name = "lxml" },
+    { name = "mcp" },
+    { name = "pypdf" },
+    { name = "python-dotenv" },
+]
+
+[package.optional-dependencies]
+s3 = [
+    { name = "boto3" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "beautifulsoup4", specifier = ">=4.12" },
+    { name = "boto3", marker = "extra == 's3'", specifier = ">=1.35" },
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "lxml", specifier = ">=5" },
+    { name = "mcp", specifier = ">=1.9,<2" },
+    { name = "pypdf", specifier = ">=5" },
+    { name = "python-dotenv", specifier = ">=1.0" },
+]
+provides-extras = ["s3"]
 
 [[package]]
 name = "pathspec"
