@@ -28,6 +28,8 @@ requires-python = ">=3.11,<3.14"
 [project.scripts]
 review = "app.cli:main"
 configure-review = "app.configure:main"
+review-lc = "lc_app.cli:main"
+paper-sources-mcp = "lc_app.paper_mcp_server:main"
 
 
 [dependency-groups]
@@ -46,6 +48,16 @@ lint = [
     "ruff>=0.4.6,<1.0.0",
     "ty>=0.0.1a0",
     "codespell>=2.2.0,<3.0.0",
+]
+langchain = [
+    "boto3>=1.35",
+    "langchain>=1.0",
+    "langchain-anthropic>=1.0",
+    "langchain-mcp-adapters>=0.1",
+    "langchain-ollama>=0.3",
+    "langgraph>=1.0",
+    "mcp>=1.9",
+    "pypdf>=5",
 ]
 
 [tool.ruff]
@@ -66,7 +78,7 @@ select = [
 ignore = ["E501", "C901", "B006"] # ignore line too long, too complex
 
 [tool.ruff.lint.isort]
-known-first-party = ["app", "frontend"]
+known-first-party = ["app", "frontend", "lc_app"]
 
 [tool.ty]
 # ty is Astral's Rust-based type checker (same team as ruff/uv)
@@ -104,6 +116,6 @@ pythonpath = "."
 asyncio_default_fixture_loop_scope = "function"
 
 [tool.hatch.build.targets.wheel]
-packages = ["app","frontend"]
+packages = ["app","frontend","lc_app"]
 
 

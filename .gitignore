@@ -215,3 +215,10 @@ deployment/noadk/
 # Kaggle submission materials — not part of the public codebase.
 kaggle_instructions.md
 kaggle_writeup.md
+
+# LangChain variant: research + manual-paper cache (lc_app/cache.py)
+.lc_cache/
+
+# AWS access-key downloads from the IAM console
+*accessKeys*.csv
+*credentials*.csv
