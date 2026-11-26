@@ -779,12 +779,12 @@ _SERVER_ENV = (
 
 
 def paper_server_connection() -> dict[str, Any]:
-    """stdio connection that launches lc_app.paper_mcp_server in a subprocess."""
+    """stdio connection that launches the paper-sources MCP server in a subprocess."""
     env = {k: os.environ[k] for k in _SERVER_ENV if os.getenv(k)}
     return {
         "transport": "stdio",
         "command": sys.executable,
-        "args": ["-m", "lc_app.paper_mcp_server"],
+        "args": ["-m", "paper_sources_mcp.server"],
         "env": env,
         "cwd": str(Path(__file__).resolve().parent.parent),
     }

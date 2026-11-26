@@ -89,7 +89,7 @@ def test_paper_server_connection_passes_only_allowed_env(monkeypatch):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "secret")
     conn = graph.paper_server_connection()
     assert conn["transport"] == "stdio"
-    assert conn["args"] == ["-m", "lc_app.paper_mcp_server"]
+    assert conn["args"] == ["-m", "paper_sources_mcp.server"]
     assert conn["env"] == {
         "NCBI_API_KEY": "k",
         "OPENALEX_MAILTO": "me@example.org",

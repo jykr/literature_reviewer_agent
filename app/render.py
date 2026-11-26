@@ -455,7 +455,7 @@ dl dd ul{margin:4px 0;padding-left:18px}
   <p class="crit">Ranked by a blend of field impact, relevance to the stated interests, and author/venue
     credibility. Scores are editorial judgments, not computed. Tag papers and copy clean notes
     into your note app. Generated __GENERATED__ &middot;
-    <a href="https://github.com/jykr/literature_reviewer_agent" target="_blank" rel="noopener">See the source</a></p>
+    <a href="https://github.com/jykr/paper_triage" target="_blank" rel="noopener">See the source</a></p>
 </header>
 
 <details class="interests" id="interests" open>
