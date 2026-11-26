@@ -1,5 +1,6 @@
 # Paper Triage
-
+[![PyPI](https://img.shields.io/pypi/v/paper-sources-mcp?label=PyPI)](https://pypi.org/project/paper-sources-mcp/)
+[![MCP Registry](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fregistry.modelcontextprotocol.io%2Fv0.1%2Fservers%2Fio.github.jykr%252Fpaper-sources%2Fversions%2Flatest&query=%24.server.version&label=MCP%20Registry)](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.jykr%2Fpaper-sources/versions/latest)
 [![Server status](https://img.shields.io/website?url=https%3A%2F%2Fliterature-reviewer-4055136070.us-central1.run.app%2Fhealth&up_message=online&down_message=offline&label=server)](https://literature-reviewer-4055136070.us-east1.run.app/reviewer)
 
 Literature review is often a daunting task. Get some help from agents. 

@@ -1,4 +1,6 @@
 # paper-sources MCP server
+[![PyPI](https://img.shields.io/pypi/v/paper-sources-mcp?label=PyPI)](https://pypi.org/project/paper-sources-mcp/)
+[![MCP Registry](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fregistry.modelcontextprotocol.io%2Fv0.1%2Fservers%2Fio.github.jykr%252Fpaper-sources%2Fversions%2Flatest&query=%24.server.version&label=MCP%20Registry)](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.jykr%2Fpaper-sources/versions/latest)
 
 A standalone [Model Context Protocol](https://modelcontextprotocol.io) server that pools scholarly search across five open sources.
 
