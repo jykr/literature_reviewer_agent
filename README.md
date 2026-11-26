@@ -27,7 +27,17 @@ See [`paper-review-SPEC.md`](paper-review-SPEC.md) for the complete specificatio
 
 ## Pipeline
 
-`intake` (paper links in the message) → `scope` → five parallel `researcher`s over pooled sources (OpenAlex, Europe PMC, PubMed, arXiv, bioRxiv/medRxiv) → `added_papers` → `rank` (batched; author-first credibility, coverage-first) → `deepen` (selected papers re-read from open full text: arXiv, PMC, Unpaywall) → `library` (Paperpile flags) → render.
+| # | Step | What it does |
+|---|---|---|
+| 1 | `intake` | Pulls paper links, DOIs, arXiv ids and PMIDs out of the request. Those papers are reviewed as added papers. |
+| 2 | `scope` | Reads the CV or lab page and the topics, then writes a researcher profile (or uses the one you typed) and up to five topic groups with search keywords. |
+| 3 | `researcher` ×5, in parallel | One per topic group. Each searches OpenAlex, Europe PMC, PubMed, arXiv and bioRxiv/medRxiv through the pooled tools. A paper is kept only if a tool returned it, and its link, venue, citations and author h-index come from the tool record. |
+| 4 | `added_papers` | Looks up the added papers: pasted links, and optionally the 10 most recently added papers under a Paperpile label. |
+| 5 | `rank` | Orders papers by how many interests they cover, then by author credibility (weighted above venue). Added papers are ranked in batches of 10, and the ranker's output is re-checked against the tool records. |
+| 6 | `deepen` | Re-reads the selected papers in full text (arXiv, PMC, Unpaywall, then PDFs saved in Paperpile) and rewrites their analysis. Result bullets that quote numbers not found in the text are dropped. |
+| 7 | `library` | With a Paperpile key, flags papers already in your library. |
+| 8 | `render` | Builds the self-contained Paper Triage page. |
+
 
 ### **MCP server for paper source collection**
   The same pipeline and output, with paper search served by a local MCP server that pools five sources:
@@ -42,40 +52,29 @@ See [`paper-review-SPEC.md`](paper-review-SPEC.md) for the complete specificatio
   - **Use the MCP server elsewhere:** the pooled search runs as a standalone MCP server (`uv run paper-sources-mcp`; stdio by default, or `--transport streamable-http` to serve a URL), so any MCP client can use it. **[docs/paper-sources-mcp.md](docs/paper-sources-mcp.md)** has its tools, optional keys, and setup for Claude Code and Desktop, Cursor, Windsurf, VS Code, Gemini CLI, Codex CLI, and the MCP Python SDK, ADK and LangChain.
 
 - **Focus lens:** set `LC_REVIEW_FOCUS` to steer scope, search and ranking (e.g. frontier ML for genomics); unset, the app stays field-general.
-- [Run your own server](run_your_own_server.md)
-<details>
-<summary>Details</summary>
-
-- **Model:** `LC_REVIEW_MODEL` / `--model`, an `init_chat_model` id (default `anthropic:claude-sonnet-5-5`).
-- **Focus:** `LC_REVIEW_FOCUS` / `--focus` sets a standing lens applied to scope, research and rank. The default is frontier ML for genomics/biology (new architectures, bio foundation models, scaling, rigorous benchmarks). `--no-focus` makes it field-general like the ADK app.
-- **Pipeline:** scope → `Send` fan-out of one `create_agent` researcher per cluster over the MCP tools → structured-output ranker → the same `app/render.py` HTML.
-- **Credibility weighting:** author credibility is the primary signal (senior-author h-index first, then first-author h-index, citations, FWCI); peer-reviewed venue is a secondary tie-breaker over arXiv/bioRxiv preprints, roughly half the weight. The ranker sees evidence, not names: venue type, arXiv `journal_ref`/"accepted at" notes, first/senior-author h-index (OpenAlex), citations and FWCI. Venue and preprint status are copied from the tool output, so the model can't upgrade a preprint.
-- **Full text, for the final selection only:** after ranking (which stays abstract-based), the selected papers are re-analyzed from full text: arXiv HTML/PDF, PMC (NCBI and Europe PMC, incl. author manuscripts), and legal open copies found by Unpaywall (`UNPAYWALL_EMAIL`); bioRxiv optionally via its official requester-pays S3 buckets (`LC_BIORXIV_S3=1` + AWS credentials). Result bullets quoting numbers absent from the text are dropped; papers without open full text are labeled "Abstract only".
-- **Paperpile (beta MCP, optional):** with `PAPERPILE_API_KEY` in `.env`, reviewed papers already in your library get an "In your Paperpile" badge. `--paperpile-profile [FOLDER]` adds up to 100 titles from your library (or one folder/label) to the request as an interest profile. `--save-to-paperpile [LABEL]` saves the reviewed papers under a label (default `review-lc`); existing copies only gain the label, and nothing is deleted or rewritten. `--include-paperpile "to read"` adds every paper in that folder/label to the review, analyzed like manually added papers and shown in purple with a "Paperpile: to read" badge (items without a DOI, arXiv id or paper URL, like tool web pages, are skipped). `--added-since 6m` (or a date) keeps only papers added to the library since then; Paperpile doesn't record when a label was applied. `--only-added` skips the literature search and reviews just the added papers. `--no-paperpile` skips Paperpile entirely. Check the connection with `python -m lc_app.paperpile`.
-- **LangGraph dev server:** `uv run --extra langchain langgraph dev` serves the graph (`langgraph.json` → `lc_app/studio.py`) at http://127.0.0.1:2024, with API docs at `/docs` and LangGraph Studio for step-by-step runs. Input is `{"request": "..."}` plus optional `manual_ids`, `from_date`, `refresh`, `skip_research`, `add_to_previous`; the page is written to `.lc_cache/studio/` and the path is in the final `message`.
-
-</details>
 
 
-## Agent workflow
-### agents-cli
-<img src="image/README/agents_cli_graph.png" alt="agents-cli graph" width="720">
-
-(Generated with `agents-cli playground`)
-
-### LangChain (`lc_app/`)
-![langgraph](image/README/review-lc-graph.png)
-
-(Generated with `graph.get_graph().draw_mermaid_png()`)
-
-- `scope`: Determine the scope of the search
-- `manual`: Include manually added papers by user
-- `research`: Search for abstract from the databases
-- `rank`: Rank the papers
-- `deepen`: Fetch full text and analyze
-- `render`: Render the report
 
 
+### Workflow visualization
+
+<table>
+  <tr>
+    <th>agents-cli (ADK)</th>
+    <th>LangChain (<code>lc_app/</code>)</th>
+  </tr>
+  <tr>
+    <td align="center" valign="middle"><img src="image/README/agents_cli_graph.png" alt="agents-cli workflow graph" width="480"></td>
+    <td align="center" valign="middle"><img src="image/README/review-lc-graph.png" alt="LangGraph workflow graph" width="230"></td>
+  </tr>
+  <tr>
+    <td>Generated with <code>agents-cli playground</code></td>
+    <td>Generated with <code>graph.get_graph().draw_mermaid_png()</code>.<br><code>manual</code>: papers added by the user</td>
+  </tr>
+</table>
+
+### Deployment
+The web app is deployed with `agents-cli deploy` on Google Cloud Platform. You can also [run your own server](run_your_own_server.md).
 
 
 ## Model-agnostic

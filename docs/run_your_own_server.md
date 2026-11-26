@@ -31,3 +31,5 @@ uv sync --extra langchain
 uv run --extra langchain review-lc "recent single-cell foundation model papers" --open
 uv run --extra langchain review-lc --cv https://example.edu/~me --topics "a; b" --model openai:gpt-5
 ```
+
+- **LangGraph dev server:** `uv run --extra langchain langgraph dev` serves the graph (`langgraph.json` → `lc_app/studio.py`) at http://127.0.0.1:2024, with API docs at `/docs` and LangGraph Studio for step-by-step runs. Input is `{"request": "..."}` plus optional `manual_ids`, `from_date`, `refresh`, `skip_research`, `add_to_previous`; the page is written to `.lc_cache/studio/` and the path is in the final `message`.
