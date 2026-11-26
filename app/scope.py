@@ -23,11 +23,15 @@ Downstream agents read it with the ``{scope}`` placeholder; the ranker (which
 has no tools) is where we enforce a real ``output_schema``.
 """
 
+import json
+
 from google.adk.agents import Agent
+from google.adk.agents.callback_context import CallbackContext
 from google.adk.tools.load_web_page import load_web_page
 
 from app.models import build_model, safety_config
 from app.security import injection_guard, url_ssrf_guard
+from lc_app.focus import focus_block
 
 SCOPE_INSTRUCTION = """\
 You define the research scope for a paper review tailored to
@@ -62,16 +66,43 @@ ONLY this JSON object — no prose, no code fences:
 }
 """
 
-scope_agent = Agent(
-    name="scope_agent",
-    model=build_model(),
-    description="Derives up to 5 subfield clusters from a CV URL and/or free-text research topics; asks for input if given neither.",
-    instruction=SCOPE_INSTRUCTION,
-    tools=[load_web_page],
-    output_key="scope",
-    generate_content_config=safety_config(),
-    # Security guardrails (app/security.py): block SSRF-prone URLs before the
-    # load_web_page fetch, and refuse oversized / injection-style user input.
-    before_tool_callback=url_ssrf_guard,
-    before_model_callback=injection_guard,
-)
+
+def scope_instruction(ctx) -> str:
+    """SCOPE_INSTRUCTION plus the review focus lens (LC_REVIEW_FOCUS)."""
+    return SCOPE_INSTRUCTION + focus_block("scope", use_default=False)
+
+
+def apply_profile_override(callback_context: CallbackContext) -> None:
+    """after_agent_callback: use the user's own profile wording, verbatim."""
+    state = callback_context.state
+    override = (state.get("profile_override") or "").strip()
+    raw = state.get("scope")
+    if not override or not raw:
+        return None
+    try:
+        scope = json.loads(raw) if isinstance(raw, str) else dict(raw)
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return None  # scope asked for input instead of emitting JSON
+    scope["profile"] = override
+    state["scope"] = json.dumps(scope, ensure_ascii=False)
+    return None
+
+
+def create_scope_agent(model=None) -> Agent:
+    return Agent(
+        name="scope_agent",
+        model=model or build_model(),
+        description="Derives up to 5 subfield clusters from a CV URL and/or free-text research topics; asks for input if given neither.",
+        instruction=scope_instruction,
+        tools=[load_web_page],
+        output_key="scope",
+        generate_content_config=safety_config(),
+        # Security guardrails (app/security.py): block SSRF-prone URLs before the
+        # load_web_page fetch, and refuse oversized / injection-style user input.
+        before_tool_callback=url_ssrf_guard,
+        before_model_callback=injection_guard,
+        after_agent_callback=apply_profile_override,
+    )
+
+
+scope_agent = create_scope_agent()

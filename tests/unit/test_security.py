@@ -70,7 +70,9 @@ def test_ssrf_guard_allows_public_url():
     # Public host that resolves to a routable address -> guard returns None (proceed).
     ok, _ = _url_is_safe("https://example.com/cv")
     assert ok is True
-    result = url_ssrf_guard(_load_web_page_tool(), {"url": "https://example.com/cv"}, None)
+    result = url_ssrf_guard(
+        _load_web_page_tool(), {"url": "https://example.com/cv"}, None
+    )
     assert result is None
 
 

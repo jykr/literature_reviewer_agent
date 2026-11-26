@@ -42,14 +42,14 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 from google.adk.runners import InMemoryRunner  # noqa: E402
 from google.genai import types  # noqa: E402
 
-from app.agent import root_agent  # noqa: E402
+from app.agent import build_root_agent  # noqa: E402
 
 HTML_PATH = Path.cwd() / "literature-reviewer.html"
 
 
 def _prompt_inputs() -> str:
     """Ask the user for a CV URL and/or topics; loop until something is given."""
-    heading = "Recent Literature Review Queue"
+    heading = "Paper Triage"
     print("\n" + heading)
     print("=" * len(heading))
     print("Provide a CV/website URL, some research topics, or both.\n")
@@ -73,7 +73,8 @@ def _build_message(cv: str, topics: str) -> str:
 
 async def _run(message: str) -> str | None:
     """Drive the pipeline, printing progress; return the final message."""
-    runner = InMemoryRunner(agent=root_agent, app_name="app")
+    # Built here, after --model has set REVIEW_MODEL.
+    runner = InMemoryRunner(agent=build_root_agent(), app_name="app")
     session = await runner.session_service.create_session(app_name="app", user_id="cli")
     final, last_author = None, None
     async for ev in runner.run_async(

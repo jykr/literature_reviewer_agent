@@ -21,6 +21,8 @@ WORKDIR /code
 COPY ./pyproject.toml ./README.md ./uv.lock* ./
 
 COPY ./app ./app
+# Shared review logic, pooled paper sources and Paperpile client (imported by app/).
+COPY ./lc_app ./lc_app
 
 # The single-file review web app served at /reviewer (AGENT_DIR/literature-reviewer.html).
 COPY ./literature-reviewer.html ./

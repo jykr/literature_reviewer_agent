@@ -17,32 +17,63 @@
 
 Pipeline (SPEC §2), as a linear SequentialAgent:
 
-    scope_agent        read CV -> subfield clusters          (state['scope'])
-        |
-    research_fanout    one google_search agent per cluster   (state['papers_*'])
-        |
-    rank_agent         merge + deepen + rank -> ReviewQueue  (state['review_queue'])
-                       then after_agent_callback renders literature-reviewer.html
+    intake_agent       paper links in the message -> added papers
+    scope_agent        read CV / topics -> subfield clusters        (state['scope'])
+    research_fanout    one pooled-search researcher per cluster     (state['papers_*'])
+    added_papers       look up added papers (+ a Paperpile label)   (state['added'])
+    rank_agent         batched ranker, tool-verified, coverage-first (state['review_queue'])
+    deepen_agent       selected papers re-analyzed from open full text
+    library_agent      flag papers already in Paperpile; render literature-reviewer.html
 
-Input: a chat message with the researcher's CV/site URL (+ optional scope hints).
+Input: a chat message with a CV/site URL, research topics, and/or paper links.
 Output: the self-contained review app, saved as an artifact.
+
+``build_root_agent(model)`` builds the tree on a given model (the hosted page
+passes one bound to the caller's own API key); ``root_agent`` uses the
+configured ``REVIEW_MODEL``.
 """
 
 from google.adk.agents import SequentialAgent
 from google.adk.apps import App
 
-from app.analysis import rank_agent
-from app.research import research_fanout
-from app.scope import scope_agent
-
-root_agent = SequentialAgent(
-    name="root_agent",
-    description=(
-        "Given a researcher's CV URL, researches recent papers, ranks them by "
-        "relevance, and renders a self-contained review app."
-    ),
-    sub_agents=[scope_agent, research_fanout, rank_agent],
+from app.models import build_model
+from app.render import assemble_html_callback
+from app.research import create_research_fanout
+from app.scope import create_scope_agent
+from app.stages import (
+    AddedPapersAgent,
+    DeepenAgent,
+    IntakeAgent,
+    LibraryAgent,
+    RankAgent,
 )
+
+
+def build_root_agent(model=None) -> SequentialAgent:
+    model = model or build_model()
+    return SequentialAgent(
+        name="root_agent",
+        description=(
+            "Given a researcher's CV URL, topics or papers, researches recent papers, "
+            "ranks them, reads the selected ones in full, and renders a review app."
+        ),
+        sub_agents=[
+            IntakeAgent(name="intake_agent", description="Collects added paper links."),
+            create_scope_agent(model),
+            create_research_fanout(model),
+            AddedPapersAgent(name="added_papers", description="Looks up added papers."),
+            RankAgent(name="rank_agent", description="Ranks papers.", llm=model),
+            DeepenAgent(name="deepen_agent", description="Reads full text.", llm=model),
+            LibraryAgent(
+                name="library_agent",
+                description="Flags papers in Paperpile and renders the review.",
+                after_agent_callback=assemble_html_callback,
+            ),
+        ],
+    )
+
+
+root_agent = build_root_agent()
 
 # App name MUST match the agent directory ("app") or eval/sessions break.
 app = App(
