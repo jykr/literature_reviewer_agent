@@ -3,12 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Recent Literature Review Queue</title>
+<title>Paper Triage</title>
 <style>
 :root{
   --bg:#f6f7f9; --card:#fff; --ink:#1a1d21; --muted:#5b6570; --line:#e3e7ec;
   --accent:#2b6cb0; --accent-soft:#e8f0f8;
   --important:#c0392b; --further:#b7791f; --done:#2f855a;
+  --pp:#7b3fb3; --pp-soft:#f6f0fb;
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
@@ -26,8 +27,8 @@ header.top .crit{color:var(--muted);font-size:13px;max-width:70ch}
 .interests>summary::before{content:"\25B8";display:inline-block;margin-right:6px;color:var(--muted);transition:transform .15s}
 .interests[open]>summary::before{transform:rotate(90deg)}
 .interests>summary .hint{color:var(--muted);font-weight:400;font-size:12px;margin-left:6px}
-.igroups{display:flex;flex-wrap:wrap;gap:18px;margin:12px 0 4px}
-.igroup{min-width:180px}
+.igroups{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));gap:10px 16px}
+.igroup{min-width:0}
 .igroup h4{margin:0 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
 .ichip{display:inline-flex;align-items:center;gap:6px;font-size:12px;background:var(--accent-soft);
   color:var(--ink);border:1px solid var(--line);border-radius:16px;padding:3px 6px 3px 10px;margin:0 6px 6px 0;max-width:340px}
@@ -35,16 +36,61 @@ header.top .crit{color:var(--muted);font-size:13px;max-width:70ch}
 .ichip .x{cursor:pointer;color:var(--muted);border:none;background:none;font-size:13px;line-height:1;padding:0 2px}
 .ichip .x:hover{color:var(--important)}
 .inone{font-size:12px;color:var(--muted)}
-.iadd{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px}
-.iadd select,.iadd input{font:inherit;padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:#fff}
-.iadd input{min-width:260px;flex:1 1 260px}
-.mset{display:inline-flex;gap:8px;align-items:center;flex-wrap:wrap;margin-right:12px}
-.mset select,.mset input{font:inherit;padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:#fff}
-.mset input{min-width:200px}
+.iadd{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.iadd select,.iadd input{font:inherit;padding:6px 9px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.iadd input{min-width:0;flex:1 1 240px}
+.btn.ppadd.nokey{opacity:.6}
+.keyrow{display:flex;gap:6px;align-items:center;min-width:0}
+.keyrow input{flex:1 1 auto;min-width:0}
+.keyrow .btn{white-space:nowrap}
 .iactions{display:flex;gap:12px;align-items:center;margin-top:10px;flex-wrap:wrap}
-.regen{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600}
-.regen:hover{background:#255e91}
-.regen[disabled]{opacity:.6;cursor:progress}
+.profilebox{display:grid;gap:4px;margin:6px 0 8px;max-width:90ch}
+.plabel{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}
+.profilebox textarea{font:inherit;font-style:italic;color:var(--ink);padding:6px 8px;border:1px dashed var(--line);
+  border-radius:8px;resize:vertical;width:100%;background:transparent}
+.profilebox textarea:focus{border-style:solid;border-color:var(--accent);outline:none;background:#fff}
+.phint{margin:0;font-size:12px;color:var(--muted)}
+.isections{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:16px;margin-top:12px;align-items:stretch}
+@media(max-width:980px){.isections{grid-template-columns:1fr}}
+.isec{display:grid;gap:10px;align-content:start}
+.imain{gap:18px;grid-template-rows:auto auto 1fr}
+.imain .igen{align-self:end}
+.isub{display:grid;gap:8px;min-width:0}
+.isub + .isub{border-top:1px solid var(--line);padding-top:16px}
+.isec h3{margin:0}
+.ihelp{margin:0}
+.field{display:grid;gap:4px;min-width:0;font-size:12px;color:var(--muted)}
+.field label{font-weight:600}
+.field input,.field select{font:inherit;font-size:14px;color:var(--ink);padding:6px 9px;border:1px solid var(--line);border-radius:8px;background:#fff;width:100%;min-width:0}
+.mgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:10px 12px}
+.pprow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px}
+.pfoot{border-top:1px solid var(--line);padding-top:8px;font-size:11.5px}
+.igen{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:14px;margin-top:0}
+.isec{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--bg);min-width:0}
+.isec h3{margin:0 0 6px;font-size:14px;display:flex;align-items:center;gap:8px}
+.isec .step{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;
+  background:var(--accent);color:#fff;font-size:11px;font-weight:700}
+.isec .opt{font-size:11px;font-weight:400;color:var(--muted)}
+.ihelp{font-size:12px;color:var(--muted);margin:0 0 8px}
+.ihelp p{margin:0 0 6px}
+.ihelp ul{margin:0 0 6px;padding-left:18px}
+.ihelp .sel{user-select:all;color:var(--ink)}
+.ippsave{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px}
+.check{display:inline-flex;gap:6px;align-items:center}
+[hidden]{display:none !important}  /* `hidden` always wins over display rules */
+.gp{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);min-width:0;flex:1 1 260px;cursor:help}
+.gp-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.gp-time{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.gp-spin{width:14px;height:14px;border-radius:50%;border:2px solid var(--accent-soft);border-top-color:var(--accent);
+  animation:gp-spin .9s linear infinite;flex:0 0 auto}
+.gp-bar{position:relative;flex:0 0 90px;height:4px;border-radius:2px;background:var(--accent-soft);overflow:hidden}
+.gp-bar span{position:absolute;top:0;bottom:0;width:35%;border-radius:2px;background:var(--accent);animation:gp-slide 1.6s ease-in-out infinite}
+@keyframes gp-spin{to{transform:rotate(360deg)}}
+@keyframes gp-slide{0%{left:-35%}100%{left:100%}}
+@media (prefers-reduced-motion:reduce){.gp-spin,.gp-bar span{animation:none}.gp-bar span{left:0;width:100%;opacity:.4}}
+.btn.regen{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600;padding:7px 16px}
+.btn.regen:hover{background:#255e91}
+.btn.regen[disabled]{opacity:.6;cursor:progress}
 .istatus{font-size:13px;color:var(--muted)}
 .controls{position:sticky;top:0;z-index:10;display:flex;gap:12px;align-items:center;
   flex-wrap:wrap;padding:10px 24px;background:var(--card);border-bottom:1px solid var(--line)}
@@ -67,6 +113,11 @@ header.top .crit{color:var(--muted);font-size:13px;max-width:70ch}
 .sidebar li:hover{background:var(--accent-soft)}
 .sidebar .s-title{font-size:13px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sidebar .s-sub{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar li>span:last-child{min-width:0}
+.sidetop{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.sidetoggle{font-size:11px;padding:2px 8px;margin:0 4px 6px 0}
+.sidebar.full{width:420px;flex-basis:420px}
+.sidebar.full .s-title{white-space:normal;overflow:visible}
 .main{flex:1 1 auto;min-width:0}
 .card{background:var(--card);border:1px solid var(--line);border-left:4px solid transparent;
   border-radius:12px;padding:16px 18px;margin:0 0 16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
@@ -81,6 +132,11 @@ header.top .crit{color:var(--muted);font-size:13px;max-width:70ch}
 .meta{color:var(--muted);font-size:13px}
 .badge{display:inline-block;font-size:11px;border:1px solid var(--line);border-radius:6px;
   padding:1px 6px;color:var(--muted)}
+.badge.manual{border-color:var(--accent);color:var(--accent);font-weight:700}
+.badge.library{border-style:dashed}
+.badge.origin{border-color:var(--pp);color:var(--pp);font-weight:700}
+.card.from-pp{background:var(--pp-soft)}
+.card.from-pp .hrow .chip{background:var(--pp)}
 .scores{font-size:13px;color:var(--muted);margin-top:2px}
 .tagrow{margin:10px 0 4px;display:flex;gap:6px;flex-wrap:wrap}
 .tag{cursor:pointer;font-size:11px;border-radius:20px;padding:2px 9px;border:1px solid transparent}
@@ -104,12 +160,12 @@ dl dt{font-weight:700;color:var(--muted);font-size:13px}
 dl dd{margin:0}
 dl dd ul{margin:4px 0;padding-left:18px}
 .algo{display:inline-block;background:#1f2733;color:#fff;font-size:12px;border-radius:6px;padding:2px 9px}
-.gauge{display:inline-flex;align-items:center;gap:8px;margin-left:8px;vertical-align:middle}
-.gtrack{position:relative;width:120px;height:8px;border-radius:6px;
-  background:linear-gradient(90deg,#c9ccd1,#7c5bd0)}
-.gmark{position:absolute;top:-3px;width:14px;height:14px;background:#fff;border:2px solid #5b3fa8;
-  border-radius:50%;transform:translateX(-50%)}
+.nboxes{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 2px}
+.nbox{font-size:12px;padding:2px 10px;border:1px solid var(--line);border-radius:6px;color:var(--muted);background:transparent}
+.nbox.on{border-color:var(--ink);color:var(--ink);background:var(--accent-soft);font-weight:600}
+.gauge{display:inline-flex;align-items:center;gap:8px;vertical-align:middle}
 .glabel{font-size:12px;color:var(--muted)}
+.foot{text-align:center;font-size:12px;color:var(--muted);padding:16px 24px 24px;border-top:1px solid var(--line)}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1f2733;color:#fff;
   padding:10px 16px;border-radius:8px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:50}
 .toast.show{opacity:1}
@@ -121,37 +177,113 @@ dl dd ul{margin:4px 0;padding-left:18px}
 </head>
 <body>
 <header class="top">
-  <h1>Recent Literature Review Queue</h1>
-  <p class="sub">Ranked, taggable triage of recent papers &mdash; tailored to: <em>Computational biologist working at the interface of machine learning and molecular/genomic biology. Core areas: protein structure prediction &amp; design, genomic variant/regulatory-effect prediction, single-cell genomics, and biological foundation/language models, with applied interest in molecular ML for drug discovery. Methods-oriented, mid-to-senior, publishes at the ML-for-biology venues.</em></p>
-  <p class="crit">Ranked by a blend of field impact, relevance to your work, and author/venue
+  <h1>Paper Triage</h1>
+  <div class="profilebox">
+    <label for="profile" class="plabel">Tailored to</label>
+    <textarea id="profile" rows="2" aria-describedby="profilehint">Computational biologist working at the interface of machine learning and molecular/genomic biology. Core areas: protein structure prediction &amp; design, genomic variant/regulatory-effect prediction, single-cell genomics, and biological foundation/language models, with applied interest in molecular ML for drug discovery. Methods-oriented, mid-to-senior, publishes at the ML-for-biology venues.</textarea>
+    <p class="phint" id="profilehint">This researcher profile steers the next review. Edit it to use your own wording, or leave it and the model writes one from your interests.</p>
+  </div>
+  <p class="crit">Ranked by a blend of field impact, relevance to the stated interests, and author/venue
     credibility. Scores are editorial judgments, not computed. Tag papers and copy clean notes
-    into your note app. Generated 2026-07-06.</p>
+    into your note app. Generated 2026-11-26 &middot;
+    <a href="https://github.com/jykr/literature_reviewer_agent" target="_blank" rel="noopener">See the source</a></p>
 </header>
 
 <details class="interests" id="interests" open>
-  <summary>Your interests<span class="hint">&mdash; add a CV, paper(s), or keyword(s), then regenerate the review</span></summary>
-  <div class="igroups" id="igroups"></div>
-  <div class="iadd">
-    <select id="ikind" aria-label="Interest kind">
-      <option value="cv">CV / profile</option>
-      <option value="paper">Paper</option>
-      <option value="keyword">Keyword</option>
-    </select>
-    <input id="ivalue" type="text" placeholder="Paste a CV URL, a paper title/DOI/URL, or a keyword&hellip;">
-    <button class="btn" id="iaddbtn">&#65291; Add interest</button>
-  </div>
-  <div class="iactions">
-    <span class="mset">
-      <select id="provider" aria-label="Model provider">
-        <option value="gemini">Gemini (AI Studio)</option>
-        <option value="anthropic">Anthropic (Claude)</option>
-        <option value="openai">OpenAI</option>
-      </select>
-      <input id="model" type="text" placeholder="model id" aria-label="Model id">
-      <input id="apikey" type="password" placeholder="Your API key (not stored)" autocomplete="off" aria-label="Your API key">
-    </span>
-    <button class="btn regen" id="regen">&#8635; Regenerate review</button>
-    <span class="istatus" id="istatus"></span>
+  <summary>Set up the next review<span class="hint">&mdash; add interests, pick a model, then regenerate; Paperpile is optional</span></summary>
+  <div class="isections">
+    <section class="isec imain" aria-label="Interests and model">
+      <div class="isub" role="group" aria-labelledby="sec-interests">
+        <h3 id="sec-interests"><span class="step">1</span>Interests</h3>
+        <p class="ihelp">A CV or lab page, papers you care about, or research keywords.</p>
+        <div class="iadd">
+          <select id="ikind" aria-label="Interest kind">
+            <option value="cv">CV / profile</option>
+            <option value="paper">Paper</option>
+            <option value="keyword">Keyword</option>
+          </select>
+          <input id="ivalue" type="text" placeholder="Paste a CV URL, a paper title/DOI/URL, or a keyword&hellip;" aria-label="Interest">
+          <button class="btn" id="iaddbtn">&#65291; Add</button>
+        </div>
+        <div class="igroups" id="igroups"></div>
+      </div>
+
+      <div class="isub" role="group" aria-labelledby="sec-model">
+        <h3 id="sec-model"><span class="step">2</span>Model</h3>
+        <div class="mgrid">
+          <div class="field">
+            <label for="provider">Select model API</label>
+            <select id="provider">
+              <option value="anthropic">Anthropic (Claude)</option>
+              <option value="gemini">Google Gemini (AI Studio)</option>
+              <option value="openai">OpenAI</option>
+              <option value="openrouter">OpenRouter (sign in; Claude, GPT, Gemini&hellip;)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="model">Model ID</label>
+            <input id="model" type="text" list="modelids" placeholder="model id">
+            <datalist id="modelids"></datalist>
+          </div>
+          <div class="field">
+            <label for="apikey">API key</label>
+            <span class="keyrow">
+              <input id="apikey" type="password" placeholder="Your API key" autocomplete="off">
+              <button class="btn" id="orsignin" type="button" hidden>Sign in with OpenRouter</button>
+            </span>
+          </div>
+        </div>
+        <p class="ihelp" id="modelhelp"></p>
+      </div>
+
+      <div class="iactions igen">
+        <button class="btn regen" id="regen">&#8635; Regenerate review</button>
+        <span class="gp" id="gp" hidden aria-live="polite">
+          <span class="gp-spin" aria-hidden="true"></span>
+          <span class="gp-label" id="gp-label">Starting&hellip;</span>
+          <span class="gp-bar" aria-hidden="true"><span></span></span>
+          <span class="gp-time" id="gp-time">0:00</span>
+        </span>
+        <span class="istatus" id="istatus" role="status"></span>
+      </div>
+    </section>
+
+    <section class="isec ipp-block" aria-labelledby="sec-pp">
+      <h3 id="sec-pp">Paperpile <span class="opt">optional &middot; beta</span></h3>
+      <p class="ihelp">Connect your library to flag papers you already have, read the PDFs you saved
+        when a paper shows <b>Abstract only</b>, include a label's papers, and add reviewed papers with the agent's notes.</p>
+      <div class="field">
+        <label for="ppkey">Paperpile API key</label>
+        <input id="ppkey" type="password" placeholder="Paste your Paperpile API key" autocomplete="off">
+      </div>
+      <div class="pprow">
+        <div class="field">
+          <label for="pplabel">Include a label <span class="opt">optional</span></label>
+          <input id="pplabel" type="text" placeholder="e.g. to read" aria-describedby="pplabelhint">
+        </div>
+        <div class="field">
+          <label for="ppsince">Added</label>
+          <select id="ppsince">
+            <option value="">any time</option>
+            <option value="1m">last month</option>
+            <option value="3m">last 3 months</option>
+            <option value="6m">last 6 months</option>
+            <option value="1y">last year</option>
+          </select>
+        </div>
+      </div>
+      <p class="ihelp" id="pplabelhint">A label adds up to its 10 most recently added papers to the review. Leave it empty to review search results only.</p>
+      <label class="check"><input id="ppnotes" type="checkbox" checked> Attach the agent's notes when adding papers</label>
+      <div class="ippsave">
+        <button class="btn" id="ppcheck" disabled title="Mark the papers already in your library; the review itself is not regenerated">&#10003; Check library</button>
+        <button class="btn" id="ppaddall" disabled title="Add every paper shown to your Paperpile library">&#65291; Add all</button>
+        <button class="btn" id="ppreread" disabled title="Re-read papers marked Abstract only from the PDFs saved in your Paperpile; uses your model key">&#8635; Re-read abstracts</button>
+      </div>
+      <p class="ihelp pfoot"><b>Check library</b> marks papers you already own; <b>Re-read abstracts</b> analyzes
+        <b>Abstract only</b> papers from PDFs you saved in Paperpile. Neither regenerates the review.
+        API access is in beta: email <span class="sel">support@paperpile.com</span>, then create a key in your account settings
+        (<a href="https://paperpile.com/h/agent-plugins-mcp-beta/" target="_blank" rel="noopener">details</a>). Keys are never stored.</p>
+    </section>
   </div>
 </details>
 
@@ -183,20 +315,23 @@ dl dd ul{margin:4px 0;padding-left:18px}
 
 <div class="layout">
   <aside class="sidebar">
-    <h2 id="sidehead">Papers</h2>
+    <div class="sidetop"><h2 id="sidehead">Papers</h2>
+      <button class="btn sidetoggle" id="sidetoggle" aria-pressed="false" title="Show full titles">&#8596; Full titles</button></div>
     <ol id="sidelist"></ol>
   </aside>
   <main class="main" id="list"></main>
 </div>
 
+<footer class="foot">&copy; 2026 Jayoung Ryu</footer>
+
 <div class="toast" id="toast"></div>
 
-<script id="data" type="application/json">[{"rank": 1, "title": "A multimodal conversational agent for DNA, RNA and protein tasks", "authors": "Bernardo P. de Almeida, ..., Thomas Pierrot", "institution": "BioNTech (Germany)", "venue": "Nature Machine Intelligence", "date": "Jun 2025", "url": "https://doi.org/10.1038/s42256-025-01047-1", "insights": "New metric: instruction-following accuracy across a unified DNA/RNA/protein task suite. New eval data: multi-omic instruction benchmark spanning sequence understanding and generation. Design \u0026 novelty: a single conversational model that dispatches across modalities rather than one bespoke model per task. Eval limits: breadth-over-depth—strong coverage but not always SOTA on each specialised task.", "results": ["Nucleotide Transformer benchmark: new state-of-the-art while solving all tasks at once in natural language (vs. per-task fine-tuned models).", "Curated DNA/RNA/protein instruction tasks (multiple species, tissues, processes): performance on par with state-of-the-art specialized methods.", "Interpretability: DNA-encoder attribution shows answers rely on biologically coherent features (TATA promoter motif, splice-site dinucleotides)."], "limitation": "Generalist head trades peak per-task accuracy for coverage; long-context genomic inputs remain a bottleneck.", "resources": "https://doi.org/10.1038/s42256-025-01047-1", "comments": "The clearest 'one model, many omic tasks' result this cycle; matches structure, regulatory-genomics and foundation-model interests at once, which is why it tops coverage.", "relevance": "Directly bridges three of your clusters (protein, regulatory genomics, foundation models) in one system—useful as both a baseline and an interface pattern for multi-omic tooling.", "impact": 8, "rel": 9, "cats": [0, 1, 3], "cover": 3}, {"rank": 2, "title": "Accurate de novo design of high-affinity protein-binding macrocycles using deep learning", "authors": "Stephen Rettie, ..., Gaurav Bhardwaj", "institution": "University of Washington", "venue": "Nature Chemical Biology", "date": "Jun 2025", "url": "https://doi.org/10.1038/s41589-025-01929-w", "insights": "New metric: experimental binding affinity (Kd) of designed macrocycles against targets. New eval data: wet-lab-validated de novo macrocycle binders. Design \u0026 novelty: extends RFdiffusion-style design from proteins to constrained macrocyclic scaffolds. Eval limits: success rates reported on a limited target panel; synthesis/validation throughput bounds the sample size.", "results": ["De novo macrocycle design (RFpeptides) vs 4 diverse protein targets: ≤20 designs tested per target; medium-to-high-affinity binders obtained for all 4.", "Target RbtA: high-affinity binder with Kd \u003c 10 nM, designed from the predicted target structure.", "Structural validation: X-ray structures of Mcl-1, GABARAP and RbtA complexes match design models to Cα RMSD \u003c 1.5 Å."], "limitation": "Design-to-validation pipeline is low-throughput; generalization to arbitrary targets not yet shown.", "resources": "https://doi.org/10.1038/s41589-025-01929-w", "comments": "A genuinely new capability (structured-macrocycle binders) with experimental confirmation—high novelty, spans protein design and molecular/drug discovery.", "relevance": "Baker-lab-style generative design extended to a drug-like modality—relevant to both your protein-design and molecular-ML interests.", "impact": 9, "rel": 8, "cats": [0, 4], "cover": 2}, {"rank": 3, "title": "Virtual Cell Challenge: Toward a Turing test for the virtual cell", "authors": "Yusuf Roohani, ..., Dave P. Burke", "institution": "Arc Institute / Palo Alto Institute", "venue": "Cell", "date": "Jun 2025", "url": "https://doi.org/10.1016/j.cell.2025.06.008", "insights": "New metric: proposes a standardized perturbation-prediction 'Turing test' for virtual-cell models. New eval data: a held-out perturbation benchmark defining the challenge. Design \u0026 novelty: reframes single-cell foundation modeling as a community benchmark with a concrete success criterion. Eval limits: a challenge/position piece—the metric's fidelity to real biology is itself under test.", "results": ["Task: predict cells' transcriptional response to unseen perturbations, framed as a community 'Turing test' benchmark for virtual-cell models (challenge paper; no headline metric)."], "limitation": "Defines the target rather than solving it; benchmark realism and leakage remain open questions.", "resources": "https://doi.org/10.1016/j.cell.2025.06.008", "comments": "Sets the agenda for single-cell foundation models by giving the field a shared, falsifiable goal—likely to shape how scFMs are evaluated.", "relevance": "Anchors your single-cell + foundation-model clusters with the benchmark everyone will be measured against.", "impact": 8, "rel": 8, "cats": [2, 3], "cover": 2}, {"rank": 4, "title": "Benchmarking DNA foundation models for genomic and genetic tasks", "authors": "Haonan Feng, ..., Chong Wu", "institution": "UT MD Anderson Cancer Center", "venue": "Nature Communications", "date": "Nov 2025", "url": "https://doi.org/10.1038/s41467-025-65823-8", "insights": "New metric: unified scoring across genomic + genetic task families. New eval data: a broad, standardized DNA-FM benchmark suite. Design \u0026 novelty: systematic head-to-head of DNA foundation models under one protocol. Eval limits: leaderboard reflects chosen tasks/splits; fast model turnover dates specific rankings.", "results": ["Benchmarks 5 DNA FMs (DNABERT-2, Nucleotide Transformer v2, HyenaDNA, Caduceus-Ph, GROVER) with zero-shot embeddings across sequence classification, gene-expression prediction, variant-effect quantification and TAD recognition.", "Embedding strategy: mean token embedding significantly and consistently improves sequence classification, beating other pooling strategies.", "Task-dependence: competitive on pathogenic-variant identification, but weaker than specialized models on gene-expression and causal-QTL prediction."], "limitation": "Benchmarks lag the newest models; task selection shapes conclusions.", "resources": "https://doi.org/10.1038/s41467-025-65823-8", "comments": "The controlled, apples-to-apples DNA-FM comparison the field needed—pairs naturally with the Koo-lab probing study.", "relevance": "Direct to your regulatory-genomics + foundation-model overlap—use it to pick a DNA FM instead of trusting single-paper claims.", "impact": 8, "rel": 9, "cats": [1, 3], "cover": 2}, {"rank": 5, "title": "Biophysics-based protein language models for protein engineering", "authors": "Sam Gelman, ..., Philip A. Romero", "institution": "University of Wisconsin–Madison", "venue": "Nature Methods", "date": "Sep 2025", "url": "https://doi.org/10.1038/s41592-025-02776-2", "insights": "New metric: fitness-prediction correlation on deep mutational scanning benchmarks. New eval data: biophysics-augmented variant-effect evaluation sets. Design \u0026 novelty: injects biophysical structure/energetics into PLM training rather than sequence-only pretraining. Eval limits: gains concentrate on proteins with good structural coverage.", "results": ["Protein engineering (thermostability, catalytic activity, fluorescence): METL pretrains on biophysical-simulation data, then fine-tunes on experimental sequence-function data.", "Hard-regime results: excels at small-training-set generalization and position extrapolation vs evolutionary-signal baselines.", "GFP design: produces functional green-fluorescent-protein variants trained on only 64 examples."], "limitation": "Requires structural/biophysical features that are weaker for poorly characterized proteins.", "resources": "https://doi.org/10.1038/s41592-025-02776-2", "comments": "A principled hybrid—sequence PLM conditioned on biophysics—that pushes variant-effect/engineering accuracy; strong methods contribution.", "relevance": "Sits squarely in your protein + foundation-model overlap and is directly usable for variant-effect / engineering tasks.", "impact": 8, "rel": 9, "cats": [0, 3], "cover": 2}, {"rank": 6, "title": "Nucleotide dependency analysis of genomic language models detects functional elements", "authors": "Pedro Tomaz da Silva, ..., Julien Gagneur", "institution": "Technical University of Munich / Munich Center for ML", "venue": "Nature Genetics", "date": "Oct 2025", "url": "https://doi.org/10.1038/s41588-025-02347-3", "insights": "New metric: nucleotide-dependency maps derived from genomic-LM in-silico mutagenesis. New eval data: functional-element recovery evaluated against known annotations. Design \u0026 novelty: turns a genomic LM into an interpretability tool that surfaces interacting bases. Eval limits: dependency signals need careful controls to avoid model artifacts.", "results": ["Variant effect: nucleotide-dependency scores indicate variant deleteriousness better than alignment-based conservation and gLM reconstruction.", "Structure/motif detection: accurately detects regulatory motifs and RNA base contacts (pseudoknots, tertiary contacts), revealing experimentally validated RNA structures.", "Diagnostics: dependency maps expose critical limitations of several gLM architectures and training strategies."], "limitation": "Interpretation-heavy; dependency maps can reflect model biases as much as biology.", "resources": "https://doi.org/10.1038/s41588-025-02347-3", "comments": "Shows genomic LMs can *reveal* functional grammar, not just predict—an interpretability angle that complements the benchmarking papers.", "relevance": "Core to your variant/regulatory-genomics work: a way to read functional elements straight out of a genomic LM.", "impact": 8, "rel": 9, "cats": [1, 3], "cover": 2}, {"rank": 7, "title": "Multimodal learning enables chat-based exploration of single-cell data", "authors": "Moritz Schaefer, ..., Christoph Bock", "institution": "CeMM / Austrian Academy of Sciences", "venue": "Nature Biotechnology", "date": "Nov 2025", "url": "https://doi.org/10.1038/s41587-025-02857-9", "insights": "New metric: accuracy of natural-language queries against single-cell datasets. New eval data: paired cell-data + language evaluation tasks. Design \u0026 novelty: a conversational interface over single-cell data via multimodal (cell + text) learning. Eval limits: usability gains are hard to quantify; grounding in the underlying data can drift.", "results": ["Multimodal (transcriptome + text) contrastive embedding trained on 1M RNA-seq profiles with AI-curated descriptions.", "Zero-shot prediction of cell types and other biological annotations (benchmarked); used for discovery in a human-embryonic-development meta-analysis.", "Deployed as a chat box in the CELLxGENE browser for interactive gene-expression exploration."], "limitation": "Chat convenience risks over-trusting ungrounded model answers about cells.", "resources": "https://doi.org/10.1038/s41587-025-02857-9", "comments": "Brings the LLM-chat paradigm to single-cell analysis—an accessibility leap that pairs cell embeddings with language.", "relevance": "Ties your single-cell and foundation-model interests to a practical interface pattern for exploring cell atlases.", "impact": 7, "rel": 8, "cats": [2, 3], "cover": 2}, {"rank": 8, "title": "Evaluating the representational power of pre-trained DNA language models for regulatory genomics", "authors": "Ziqi Tang, ..., Peter K. Koo", "institution": "Cold Spring Harbor Laboratory", "venue": "Genome Biology", "date": "Jul 2025", "url": "https://doi.org/10.1186/s13059-025-03674-8", "insights": "New metric: probing-based comparison of DNA-LM embeddings vs supervised baselines on regulatory tasks. New eval data: standardized regulatory-genomics probing suite. Design \u0026 novelty: a careful, critical benchmark rather than a new model—asks whether pretraining actually helps. Eval limits: conclusions bounded to the tasks/models probed.", "results": ["Regulatory genomics: evaluates pretrained-gLM representations across 6 cell-type-specific functional-genomics tasks (DNA + RNA regulation).", "Finding: probing gLM representations gives no substantial advantage over conventional ML on one-hot-encoded sequences.", "Supervised models trained from scratch on one-hot sequences match or beat pretrained gLMs across the datasets tested."], "limitation": "Findings may shift as larger/better-pretrained DNA LMs appear; probing may under-read latent capability.", "resources": "https://doi.org/10.1186/s13059-025-03674-8", "comments": "An important reality-check: pre-trained DNA LMs don't uniformly beat supervised models on regulatory tasks. Essential reading before adopting one.", "relevance": "Direct to your variant/regulatory-genomics and foundation-model clusters—tells you when a DNA LM is worth it.", "impact": 8, "rel": 9, "cats": [1, 3], "cover": 2}, {"rank": 9, "title": "Investigating whether deep learning models for co-folding learn the physics of protein-ligand interactions", "authors": "Matthew R. Masters, ..., Markus A. Lill", "institution": "SIB Swiss Institute of Bioinformatics", "venue": "Nature Communications", "date": "Oct 2025", "url": "https://doi.org/10.1038/s41467-025-63947-5", "insights": "New metric: physics-consistency probes (e.g. sensitivity to physically meaningful perturbations) beyond pose RMSD. New eval data: curated protein-ligand cases stressing physical plausibility. Design \u0026 novelty: interrogates whether AlphaFold3-style co-folding learns physics or memorizes. Eval limits: probes are indirect; a negative result on some probes doesn't rule out all physical learning.", "results": ["Co-folding robustness: applies physically/chemically/biologically plausible adversarial perturbations to RoseTTAFold-All-Atom / AlphaFold3-class models.", "Finding: notable prediction discrepancies under perturbation reveal divergence from expected physical behavior, indicating overfitting to training-data features.", "Implication: poor generalization across diverse protein-ligand structures; measured reliance advised for drug discovery."], "limitation": "Co-folding models can produce plausible poses without physically consistent behavior—caution for downstream affinity use.", "resources": "https://doi.org/10.1038/s41467-025-63947-5", "comments": "A rigorous, skeptical evaluation of the co-folding hype—exactly the kind of critical benchmark this field needs.", "relevance": "Speaks to both your structure-prediction and molecular-ML interests—tempers expectations for co-folding in drug discovery.", "impact": 8, "rel": 8, "cats": [0, 4], "cover": 2}, {"rank": 10, "title": "Biology-driven insights into the power of single-cell foundation models", "authors": "Jialu Wu, ..., Tingjun Hou", "institution": "Zhejiang Lab / Zhejiang University", "venue": "Genome Biology", "date": "Oct 2025", "url": "https://doi.org/10.1186/s13059-025-03781-6", "insights": "New metric: biology-grounded probes of what scFMs actually capture. New eval data: curated single-cell tasks tied to known biology. Design \u0026 novelty: critical, biology-first evaluation of single-cell foundation models. Eval limits: conclusions bounded to the models/tasks examined.", "results": ["Benchmarks 6 scFMs vs baselines: batch integration + cell-type annotation across 5 datasets; cancer-cell ID + drug-sensitivity across 7 cancer types and 4 drugs.", "Evaluation spans 12 metrics (unsupervised/supervised/knowledge-based), including a new scGraph-OntoRWR metric.", "Finding: no single scFM wins across all tasks; simpler ML models adapt better under resource constraints."], "limitation": "scFM benefits are task- and biology-dependent; blanket claims don't hold.", "resources": "https://doi.org/10.1186/s13059-025-03781-6", "comments": "The skeptic's companion to the scFM hype—clarifies where single-cell foundation models genuinely add signal.", "relevance": "Direct to your single-cell + foundation-model clusters; pairs with the review at #11 for a balanced view.", "impact": 7, "rel": 8, "cats": [2, 3], "cover": 2}, {"rank": 11, "title": "Single-cell foundation models: bringing artificial intelligence into cell biology", "authors": "Seungbyn Baek, ..., Insuk Lee", "institution": "Yonsei University", "venue": "Experimental \u0026 Molecular Medicine", "date": "Oct 2025", "url": "https://doi.org/10.1038/s12276-025-01547-5", "insights": "New metric: none—synthesizes reported zero-shot/fine-tuned benchmarks across scFMs. New eval data: consolidates existing single-cell benchmarks. Design \u0026 novelty: taxonomy of single-cell foundation models and where they help vs fail. Eval limits: a review—no new experiments; benchmark comparability across scFMs is uneven.", "results": ["Review of transformer-based single-cell foundation models: key concepts, downstream applications, and limitations (survey; no new experiments)."], "limitation": "Field lacks standardized single-cell benchmarks; reported gains are hard to compare head-to-head.", "resources": "https://doi.org/10.1038/s12276-025-01547-5", "comments": "A clear map of single-cell foundation models—good orientation before building on an scFM.", "relevance": "Covers your single-cell genomics cluster and ties it to foundation-model methods.", "impact": 7, "rel": 8, "cats": [2, 3], "cover": 2}, {"rank": 12, "title": "RiNALMo: general-purpose RNA language models can generalize well on structure prediction tasks", "authors": "Rafael Josip Penić, ..., Mile Šikić", "institution": "University of Zagreb", "venue": "Nature Communications", "date": "Jul 2025", "url": "https://doi.org/10.1038/s41467-025-60872-5", "insights": "New metric: RNA secondary/tertiary structure-prediction accuracy from a pretrained RNA LM. New eval data: held-out RNA families testing generalization. Design \u0026 novelty: shows a general-purpose RNA language model transfers to structure tasks. Eval limits: generalization to distant/novel RNA families still bounded.", "results": ["Scale: RiNALMo is the largest RNA LM to date — 650M parameters pretrained on 36M non-coding RNA sequences.", "Achieves state-of-the-art on several downstream RNA tasks.", "RNA secondary-structure prediction: generalizes to unseen RNA families where other deep-learning methods fail."], "limitation": "Structure gains narrow on RNA families far from the pretraining distribution.", "resources": "https://doi.org/10.1038/s41467-025-60872-5", "comments": "The RNA counterpart to protein/DNA LMs—well-cited evidence that RNA foundation models generalize to structure.", "relevance": "Extends your foundation-model interest to the RNA modality—useful if your work touches RNA structure/function.", "impact": 7, "rel": 7, "cats": [3], "cover": 1}]</script>
-<script id="cats" type="application/json">[{"id": 0, "label": "Protein structure \u0026 design", "sources": [], "color": "#2b6cb0"}, {"id": 1, "label": "Variant \u0026 regulatory genomics", "sources": [], "color": "#b7791f"}, {"id": 2, "label": "Single-cell genomics", "sources": [], "color": "#2f855a"}, {"id": 3, "label": "Foundation models for biology", "sources": [], "color": "#805ad5"}, {"id": 4, "label": "Molecular ML \u0026 drug discovery", "sources": [], "color": "#c0392b"}]</script>
+<script id="data" type="application/json">[{"rank": 1, "title": "Biophysics-based protein language models for protein engineering", "authors": "Sam Gelman, ..., Philip A. Romero", "institution": "University of Wisconsin–Madison", "venue": "Nature Methods", "date": "2025-09-01", "url": "https://doi.org/10.1038/s41592-025-02776-2", "insights": "New metric: none. New eval data: 11 experimental datasets with small-training-set and position/mutation/regime/score extrapolation splits; 20 experimentally tested GFP designs. Design \u0026 novelty: transformer with 3D relative position embeddings pretrained on 55 Rosetta attributes, then fine-tuned on experimental data. Eval limits: gains task-dependent versus EVE/ESM-2; GFP validation is narrow (one protein, 20 designs, 64 training examples).", "results": ["Information value on GB1: METL-Local pretrained on 1,000 simulated and fine-tuned on 320 experimental points performs similarly to 8,000 simulated plus 80 experimental points (~29 simulated per experimental point).", "Pretraining on GB1–IgG binding attributes (17 energy-change terms) is reported to improve performance over the standard GB1 METL-Local pretrained on structure-derived attributes only.", "METL-Local, Linear-EVE and ProteinNPT outperform general models METL-Global and ESM-2; METL-Global is reported comparable or better than a similarly sized ESM-2 with small training sets."], "limitation": "Simulations only approximate true physics, and relative performance versus EVE depends on each dataset's correlation with Rosetta score; METL-Global shows pretraining overfitting and limited protein diversity.", "resources": "https://github.com/gitter-lab/metl https://huggingface.co/gitter-lab/METL https://huggingface.co/spaces/gitter-lab/METL_demo https://github.com/gitter-lab/metl-pub https://github.com/gitter-lab/metl-sim https://github.com/gitter-lab/metl-pretrained", "comments": "The work tests simulated Rosetta attributes as a pretraining signal, with 11 datasets, several extrapolation splits, and baselines including Rosetta, EVE, RaSP, ESM-2, ProteinNPT and random-initialization METL. Ablations on simulated versus experimental data amounts, 3D versus 1D embeddings and function-specific simulation add support. The wet-lab GFP test is small and lacks reported head-to-head comparison against other designers in the excerpts. Main caveat: benefit is protein- and task-dependent, and the protein-specific METL-Local requires a structure and per-protein simulation.", "relevance": "Bears on protein language models, mutational effect prediction on sequence-function data, and self-supervised pretraining strategies for protein design.", "impact": 7, "rel": 8, "cats": [0, 1, 3], "cover": 3, "manual": false, "evidence": "fulltext", "in_library": false, "origin": "", "doi": "10.1038/s41592-025-02776-2"}, {"rank": 2, "title": "Accurate de novo design of high-affinity protein-binding macrocycles using deep learning", "authors": "Stephen Rettie, ..., Gaurav Bhardwaj", "institution": "University of Washington", "venue": "Nature Chemical Biology", "date": "2025-06-20", "url": "https://doi.org/10.1038/s41589-025-01929-w", "insights": "New metric: none. New eval data: Kd measurements and X-ray structures for designed macrocycle complexes with MCL1, GABARAP and RbtA. Design \u0026 novelty: cyclic relative position encoding added to RF2 and RFdiffusion, plus ProteinMPNN/Rosetta/AfCycDesign filtering. Eval limits: four targets, fewer than 20 designs each; no head-to-head against library screening; no ablations of pipeline stages.", "results": ["De novo macrocycle design against four targets (MCL1, MDM2, GABARAP, RbtA): fewer than 20 designs tested per target, yielding high-affinity binders for two targets without experimental optimization.", "Designed binders to GABARAP and RbtA reported with Kd \u003c 10 nM.", "X-ray structures of macrocycle-bound MCL1, GABARAP and RbtA match design models, with Cα r.m.s.d. of 0.7 Å, 1.2 Å and 1.4 Å respectively."], "limitation": "Only four targets and few designs per target were tested, and no direct comparison with library screening or other macrocycle design methods was made.", "resources": "https://github.com/RosettaCommons/RFdiffusion", "comments": "The work extends RF2 and RFdiffusion with cyclic positional encoding and pairs them with ProteinMPNN, Rosetta and AfCycDesign filtering. Crystal structures for three complexes closely match the design models, which is strong evidence of structural accuracy, including for RbtA designed against a predicted structure. Claims of a higher success rate than any previous method are not supported by head-to-head benchmarks. Pipeline components are not ablated, and four targets limit conclusions on generality and hit rate.", "relevance": "Bears on diffusion models for protein generation, de novo binder design, and structure-based design of therapeutic modalities.", "impact": 8, "rel": 8, "cats": [0, 4], "cover": 2, "manual": false, "evidence": "fulltext", "in_library": false, "origin": "", "doi": "10.1038/s41589-025-01929-w"}, {"rank": 3, "title": "A multimodal conversational agent for DNA, RNA and protein tasks", "authors": "Bernardo P. de Almeida, ..., Thomas Pierrot", "institution": "BioNTech (Germany)", "venue": "Nature Machine Intelligence", "date": "2025-06-06", "url": "https://doi.org/10.1038/s42256-025-01047-1", "insights": "New metric: perplexity-based probabilities to calibrate answer confidence (scored by MCC). New eval data: instruction-format Nucleotide Transformer benchmark (18 tasks) plus curated 27-task DNA/RNA/protein set. Design \u0026 novelty: encoder fine-tuned end to end; English-aware Perceiver projection; frozen LLM decoder. Eval limits: baselines use task-specific metrics; per-task comparison details are in supplementary material; protein tasks are few (3 of 27).", "results": ["Nucleotide Transformer benchmark (18 tasks): ChatNT with English-aware projection reaches average MCC 0.77, versus 0.69 for Nucleotide Transformer v2 (500M) and 0.71 for the standard Perceiver projection.", "Curated 27-task instruction set (21 DNA, 3 RNA, 3 protein tasks): ChatNT is compared against specialized per-task baselines (e.g. AgroNT, DeepSTARR, ESM2, Saluki), using each baseline study's metric, with one model replacing many.", "Gradient-based attribution on splice donors, splice acceptors and TATA promoters: reported to recover consolidated sequence motifs, indicating the model extracts known sequence features."], "limitation": "Gains are shown mainly on a small benchmark; on the curated tasks the model is compared against specialists with study-specific metrics, and protein and RNA coverage is small (3 tasks each).", "resources": "https://huggingface.co/InstaDeepAI/ChatNT", "comments": "ChatNT combines a pretrained Nucleotide Transformer v2 encoder, a frozen LLM decoder and a Perceiver projection conditioned on the English question. The ablation of the question-aware versus standard projection (average MCC 0.77 vs 0.71) supports the key design choice. The comparison with the encoder alone (0.77 vs 0.69) is informative but confounded by multitask training. Calibration and attribution analyses add some validation. The main caveat is that the curated-task comparison relies on heterogeneous per-task metrics and baselines, and the benchmark is small.", "relevance": "Bears on DNA foundation models, multimodal biological foundation models, and regulatory sequence prediction including splicing and expression tasks.", "impact": 7, "rel": 8, "cats": [1, 3], "cover": 2, "manual": false, "evidence": "fulltext", "in_library": false, "origin": "", "doi": "10.1038/s42256-025-01047-1"}, {"rank": 4, "title": "Nucleotide dependency analysis of genomic language models detects functional elements", "authors": "Pedro Tomaz da Silva, ..., Julien Gagneur", "institution": "Munich Center for Machine Learning", "venue": "Nature Genetics", "date": "2025-10-01", "url": "https://doi.org/10.1038/s41588-025-02347-3", "insights": "New metric: nucleotide dependency (odds-ratio shift at a target from query substitution); variant influence score; block score. New eval data: yeast TF ChIP-exo/PWM, Archive II and CompaRNA RNA structures, bpRNA pseudoknots, GTEx splicing outliers, DMS-MaPseq in E. coli. Design \u0026 novelty: in-silico mutagenesis applied to 14 gLMs, with image-style convolution filters on dependency maps. Eval limits: variant benchmark numbers are absent from the excerpts; the excerpts also note unaccounted drift and mutational biases.", "results": ["Variant deleteriousness: the authors report that the influence score from dependencies is a more effective indicator than reconstruction-probability metrics and can outperform alignment-based conservation.", "TF motifs in S. cerevisiae (68 TFs, ChIP-exo peaks): block scores are reported to identify binding sites with accuracy comparable to models trained on experimental binding data.", "RNA structure: unsupervised dependency maps from RiNALMo are reported to reflect base contacts, evaluated on Archive II, CompaRNA, pseudoknots and RNAalifold comparison, with new E. coli candidates probed by DMS-MaPseq."], "limitation": "The excerpts give no consolidated numeric comparisons, and the metric does not separate functional constraint from mutational biases and genetic drift; the authors note this requires further work.", "resources": "http://github.com/gagneurlab/dependencies_DNALM https://huggingface.co/collections/johahi/specieslms-678a39261cfff01c1fa3ae41 https://github.com/dincarnato/labtools", "comments": "The work defines a simple, model-agnostic unsupervised metric. It is evaluated on several independent reference sets: yeast TF binding, splicing, tRNA, Archive II, CompaRNA, bpRNA pseudoknots and a 69-species yeast conservation baseline. It includes an RNAalifold comparison, alternative gradient-based metrics, and experimental DMS-MaPseq follow-up. Cross-model comparisons expose tokenization and autoregressive artifacts. The main caveat is that headline claims such as outperforming conservation and matching supervised binding models are stated in prose, with limited quantitative detail in the excerpts. Generality beyond selected genomes and models is also not established, and the computational cost is high.", "relevance": "Bears on genomic language models, non-coding variant effect prediction and interpretation of regulatory sequence.", "impact": 7, "rel": 8, "cats": [1, 3], "cover": 2, "manual": false, "evidence": "fulltext", "in_library": false, "origin": "", "doi": "10.1038/s41588-025-02347-3"}, {"rank": 5, "title": "Evaluating the representational power of pre-trained DNA language models for regulatory genomics", "authors": "Ziqi Tang, ..., Peter K. Koo", "institution": "Cold Spring Harbor Laboratory", "venue": "Genome biology", "date": "2025-07-14", "url": "https://doi.org/10.1186/s13059-025-03674-8", "insights": "New metric: none. New eval data: six cell-type-specific functional genomics tasks (lentiMPRA, ChIP-seq, CAGI5 MPRA, ASCOT splicing, INSERT-seq, eCLIP). Design \u0026 novelty: frozen gLM embeddings (CLS, mean, full) versus one-hot CNNs and supervised-pretrained Sei; zero-shot variant scoring. Eval limits: random splits may favor CNNs; single fold; four gLMs; fine-tuning only briefly tested.", "results": ["Across lentiMPRA (HepG2, K562), ChIP-seq, splicing, INSERT-seq and eCLIP tasks, CNNs on full gLM embeddings were reported to give little or no advantage over one-hot CNNs.", "Zero-shot CAGI5 variant effects (Pearson, HepG2/K562): gLMs scored 0.002–0.125 and 0.007–0.135, versus one-hot CNN 0.324/0.365 and ResidualBind 0.485/0.601.", "Supervised Sei embeddings with a CNN reached 0.579 (HepG2) and 0.701 (K562) on CAGI5, but Sei embeddings underperformed on RNA tasks such as splicing and eCLIP."], "limitation": "Random train/test splits, a single fold and a small set of frozen gLMs may favor one-hot CNNs and limit generalization to fine-tuned or newer models.", "resources": "https://github.com/amberT15/LLM_eval", "comments": "The benchmark covers six cell-type-specific tasks with matched downstream models and one-hot baselines, and adds controls (CLS vs full embeddings, dinucleotide frequencies, Sei and RBP supervised embeddings). The evidence supports the claim that frozen gLM embeddings add little in regulatory regions. Caveats: results come from a single fold with random splits, which the authors acknowledge may favor CNNs, and the fine-tuning analysis is limited. Sei's pretraining included the TF binding tasks, a possible leakage. The architectural-inductive-bias explanation is interpretive and untested.", "relevance": "Bears on DNA foundation models and regulatory sequence-to-function prediction, including expression and enhancer-related tasks.", "impact": 7, "rel": 8, "cats": [1, 3], "cover": 2, "manual": false, "evidence": "fulltext", "in_library": false, "origin": "", "doi": "10.1186/s13059-025-03674-8"}, {"rank": 6, "title": "Single-cell foundation models: bringing artificial intelligence into cell biology", "authors": "Seungbyn Baek, ..., Insuk Lee", "institution": "Yonsei University", "venue": "Experimental \u0026 Molecular Medicine", "date": "2025-10-01", "url": "https://doi.org/10.1038/s12276-025-01547-5", "insights": "New metric: none. New eval data: none; narrative review, no new experiments. Design \u0026 novelty: organizes scFMs by data sources, tokenization, architecture, downstream tasks, limitations and future directions. Eval limits: no benchmarking or quantitative model comparison; selection of highlighted models not justified by explicit criteria.", "results": ["Reviews transformer-based scFMs, highlighting scBERT, Geneformer, tGPT, CellLM, CellPLM, scGPT, scFoundation, scPRINT, UCE, GeneCompass, Nicheformer and SCimilarity, with summary tables of pretraining data, architecture and tasks.", "Covers downstream tasks: cell type annotation, batch correction, imputation, gene function prediction, gene network inference and perturbation prediction; no quantitative performance comparison is presented.", "Identifies limitations: unordered gene tokens, cells treated independently, data quality, class imbalance for rare cell types, interpretability and evaluation standards; proposes multiomics integration and synthetic cell generation."], "limitation": "Review only: no new benchmark or head-to-head comparison, so claims about scFM capabilities rest on surveyed literature, often including unreviewed preprints.", "resources": "", "comments": "The review organizes the scFM literature along pretraining data, tokenization, architecture, downstream tasks and open problems, with model summary tables. It is useful for orientation but contributes no new empirical evidence. The authors note that comparing models is hard because many are preprints, and no model ranking is given. Statements that scFMs may replace many separate tools are prospective and unsupported by comparison against task-specific or simple baselines in the text. The selection of highlighted models is not justified by explicit criteria.", "relevance": "Bears on single-cell foundation models, single-cell representation learning and self-supervised pretraining on biological data, including cell annotation, perturbation prediction and regulatory network inference.", "impact": 6, "rel": 8, "cats": [2, 3], "cover": 2, "manual": false, "evidence": "fulltext", "in_library": false, "origin": "", "doi": "10.1038/s12276-025-01547-5"}, {"rank": 7, "title": "Investigating whether deep learning models for co-folding learn the physics of protein-ligand interactions", "authors": "Matthew R. Masters, ..., Markus A. Lill", "institution": "SIB Swiss Institute of Bioinformatics", "venue": "Nature Communications", "date": "2025-10-06", "url": "https://doi.org/10.1038/s41467-025-63947-5", "insights": "New metric: none. New eval data: physically motivated adversarial sets (CDK2, MEK1, glucose dehydrogenase) plus funnel-metadynamics reference simulations. Design \u0026 novelty: binding-site mutagenesis and ligand methylation/charge challenges applied to four co-folding models. Eval limits: few systems; qualitative pose inspection; no retraining or mitigation tested.", "results": ["CDK2-ATP binding-site challenges (glycine removal, phenylalanine packing, dissimilar-residue swaps): all four co-folding models largely kept the ATP in the original pocket, with some steric clashes.", "MEK1, absent from training sets: three of four models still gave near-native ligand poses despite pocket removal and packing; RFAA failed to retrieve a near-native pose.", "Funnel metadynamics for CDK2 bound-state probability: wild-type 0.61 ± 0.05, with binding site packed 0.00 ± 0.00 and inverted 0.00 ± 0.00, contrasting with co-folding poses."], "limitation": "Only a few protein-ligand systems (CDK2, MEK1, glucose dehydrogenase) were tested, and the MSA/template explanation for the bias was not tested directly.", "resources": "https://zenodo.org/records/14749304 https://zenodo.org/records/14768184", "comments": "The study uses physically motivated perturbations on four co-folding models and adds funnel-metadynamics simulations (1000 ns, triplicate) as an independent physical reference. This is a stronger design than pose inspection alone. The MEK1 case partially addresses training-set overlap. Evaluation relies mainly on qualitative pose assessment of few systems, and the MSA/template-identity explanation is argued from reasoning, not controlled ablation. The additional CASF analyses are in the supplement and show no clear predictor of the failure mode.", "relevance": "Bears on protein structure prediction, AlphaFold-class co-folding models, and protein-ligand structure prediction for structure-based drug design.", "impact": 7, "rel": 7, "cats": [0, 4], "cover": 2, "manual": false, "evidence": "fulltext", "in_library": false, "origin": "", "doi": "10.1038/s41467-025-63947-5"}, {"rank": 8, "title": "Benchmarking DNA foundation models for genomic and genetic tasks", "authors": "Haonan Feng, ..., Chong Wu", "institution": "The University of Texas MD Anderson Cancer Center", "venue": "Nature Communications", "date": "2025-11-28", "url": "https://doi.org/10.1038/s41467-025-65823-8", "insights": "New metric: none. New eval data: 57 sequence classification datasets plus expression, pathogenic/QTL variant effect, and TAD attention tasks, released on Hugging Face. Design \u0026 novelty: frozen-embedding benchmark comparing pooling strategies and classifiers, with a HyenaDNA multi-species re-pretraining experiment. Eval limits: five models; no fine-tuning; small curated windows; random 70:30 splits instead of chromosome holdout; TAD analysis NT-v2 only.", "results": ["Variant effect, pathogenic vs common SNPs: NT-v2 reached the highest average test AUC of 0.73 (Cohen's d 0.88), above Enformer (AUC 0.69, d 0.73) and Sei.", "Gene expression prediction with random forest on zero-shot embeddings: Pearson correlation was modest, 0.114 to 0.123 across models with 6k bp inputs.", "Re-pretraining HyenaDNA-1K on DNABERT-2's 135-species data gave significant gains on 14 of 49 datasets; 5mC AUC rose from 0.707 to 0.749."], "limitation": "Datasets are small curated windows with random splits, fine-tuning was not assessed, and long-context models (Enformer, Sei) were not run on the classification tasks.", "resources": "https://github.com/ChongWuLab/dna_foundation_benchmark https://huggingface.co/datasets/hfeng3/dna_foundation_benchmark_dataset https://huggingface.co/datasets/InstaDeepAI/genomics-long-range-benchmark/tree/main/variant_effect_pathogenic https://huggingface.co/datasets/InstaDeepAI/genomics-long-range-benchmark https://huggingface.co/EleutherAI/enformer-official-rough", "comments": "The benchmark is broad (57 classification datasets, expression, variant effect, TAD) and uses DeLong tests with minimal-tuning classifiers, and the code and data are released. The multi-species re-pretraining experiment adds a modest causal probe of pre-training diversity, though the authors note that the training scale may differ from the original. Specialized models (Enformer, Sei, AlphaGenome) are compared only on variant tasks, and a baseline CNN only for some multispecies tasks. Main caveat: frozen embeddings with random splits and no fine-tuning may under- or over-state model differences.", "relevance": "Bears on DNA foundation models, variant effect prediction, and gene expression prediction from sequence.", "impact": 6, "rel": 7, "cats": [1, 3], "cover": 2, "manual": false, "evidence": "fulltext", "in_library": false, "origin": "", "doi": "10.1038/s41467-025-65823-8"}, {"rank": 9, "title": "Multimodal learning enables chat-based exploration of single-cell data", "authors": "Moritz Schaefer, ..., Christoph Bock", "institution": "Austrian Academy of Sciences", "venue": "Nature Biotechnology", "date": "2025-11-11", "url": "https://doi.org/10.1038/s41587-025-02857-9", "insights": "New metric: none (AUROC and perplexity used). New eval data: held-out Human Diseases set (14,112 samples), Tabula Sapiens, ImmGen, pancreas and embryo scRNA-seq. Design \u0026 novelty: CLIP/LiT-style Geneformer-BioBERT embedding plus LLaVA-style Mistral 7B chat model, integrated in CELLxGENE Explorer. Eval limits: zero-shot gains rest on AI-curated labels; embryo and colon demonstrations are qualitative; authors call it a proof of concept.", "results": ["Zero-shot cell type prediction on Tabula Sapiens: AUROC 0.94 across 20 common cell types and 0.91 across all 177 annotated types, with lower accuracy.", "Zero-shot AUROC above 0.99 on ImmGen bulk and the Asian immune scRNA-seq dataset, but 0.89 on the human pancreas meta-analysis with batch effects.", "In the embryo meta-analysis (95,092 profiles), CellWhisperer-derived organ marker genes overlapped atlas markers (median odds ratio: 3.3) and were co-mentioned with organs in PubMed."], "limitation": "The authors call it a proof of concept for exploratory use only; it inherits biases of its embedding models, LLM and AI-curated labels, and requires conventional validation.", "resources": "https://github.com/epigen/cellwhisperer https://figshare.com/ndownloader/files/43480497", "comments": "The work adapts CLIP/LiT-style contrastive learning and LLaVA-style LLM tuning to transcriptomes, trained on 1,082,413 curated pairs, and ships an integrated tool. Held-out zero-shot evaluation spans several datasets, and the methods describe benchmarks against CellAssign and fine-tuned single-cell foundation models, though those values are not in the excerpts. Marker-gene validation uses atlas overlap and literature co-mention. Caveats: the training labels are LLM-generated, the embryo and colon use cases are qualitative, and chat quality is assessed by perplexity, a weak proxy for correctness.", "relevance": "Bears on single-cell representation learning, cell type annotation and multimodal biological foundation models.", "impact": 6, "rel": 7, "cats": [2, 3], "cover": 2, "manual": false, "evidence": "fulltext", "in_library": false, "origin": "", "doi": "10.1038/s41587-025-02857-9"}, {"rank": 10, "title": "Biology-driven insights into the power of single-cell foundation models", "authors": "Jialu Wu, ..., Tingjun Hou", "institution": "First Affiliated Hospital Zhejiang University", "venue": "Genome biology", "date": "2025-10-03", "url": "https://doi.org/10.1186/s13059-025-03781-6", "insights": "New metric: scGraph-OntoRWR, a cell-ontology random-walk metric; also extends the roughness index (ROGI) to single-cell embeddings. New eval data: AIDA v2 (about 201,000 immune cells, released after all six scFMs), plus TISCH2 cancer and drug-response data. Design \u0026 novelty: frozen zero-shot embeddings with fixed downstream models, Pareto non-dominated ranking, 12 metrics. Eval limits: only six scFMs; rankings vary by task and metric; no ablation or independent validation of the new metric.", "results": ["Drug sensitivity prediction (SCAD with zero-shot embeddings): all scFMs outperform the baseline SCAD model; scFoundation is among the top performers (AUROC = 0.755).", "The authors report that model rankings varied with metrics, datasets, tasks and validation scenarios, so no single scFM was consistently best across tasks.", "Cancer cell identification used leave-one-tissue-out cross-validation over 7 cancer types; the authors argue scFMs avoid the gene-set alignment that limits scVI and the Cancer-Finder baseline."], "limitation": "Only six scFMs under a frozen zero-shot protocol are tested, so rankings may not hold for fine-tuned or newer models; the novel metric lacks independent validation.", "resources": "https://github.com/wujialu/scFM-Bench/ https://github.com/chenhcs/FRoGS https://figshare.com/articles/dataset/Benchmarking_atlas-level_data_integration_in_single-cell_genomics_-_integration_task_datasets_Immune_and_pancreas_/12420968/7 https://figshare.com/articles/dataset/scFoundation_Large_Scale_Foundation_Model_on_Single-cell_Transcriptomics_-_processed_datasets/24049200/3", "comments": "This is a broad benchmark covering integration, annotation (including novel cell types), cancer cell identification and drug response. Its strengths are a constant downstream model across embeddings, the post-release AIDA v2 dataset to limit leakage, and the Pareto ranking, which avoids hand-chosen weights. The conclusions are descriptive and task-dependent. Main caveat: scGraph-OntoRWR rests on the expert cell ontology and is not validated against independent ground truth. Zero-shot-only evaluation may also understate fine-tuned performance.", "relevance": "Bears on single-cell foundation models, batch correction and cell type annotation.", "impact": 5, "rel": 7, "cats": [2, 3], "cover": 2, "manual": false, "evidence": "fulltext", "in_library": false, "origin": "", "doi": "10.1186/s13059-025-03781-6"}, {"rank": 11, "title": "RiNALMo: general-purpose RNA language models can generalize well on structure prediction tasks", "authors": "Rafael Josip Penić, ..., Mile Šikić", "institution": "University of Zagreb", "venue": "Nature Communications", "date": "2025-07-01", "url": "https://doi.org/10.1038/s41467-025-60872-5", "insights": "New metric: none. New eval data: ArchiveII nine-split family-held-out benchmark for inter-family secondary structure (reused from prior work, not new). Design \u0026 novelty: 650M encoder-only RNA language model, MLM on 36M curated ncRNAs, fine-tuned per task. Eval limits: task-specific fine-tuning; telomerase RNA generalization fails; only nine families tested.", "results": ["Inter-family secondary structure prediction on ArchiveII (nine families, one held out per split): RiNALMo outperforms RNAstructure and CONTRAfold in eight of nine families by high margins, unlike UFold and MXfold2.", "RiNALMo reportedly generalizes poorly on held-out telomerase RNAs but achieves the highest F1 score on all other families; exact F1 values are not in the excerpts.", "Splice-site prediction on four unseen species: fine-tuned RiNALMo reportedly outperforms RNA-FM, Uni-RNA, Spliceator and SpliceBERT; also tested on MRL, TE, EL and ncRNA family classification."], "limitation": "Inter-family generalization fails on telomerase RNAs; pretraining is limited to ncRNA, and tertiary structure and coding RNAs are not evaluated.", "resources": "https://github.com/lbcb-sci/RiNALMo https://zenodo.org/records/15043668 https://zenodo.org/records/7995778 https://codeocean.com/capsule/4214075/tree/v1 https://github.com/marcellszi/dl-rna/releases/download/Data/ct-splits.tar.gz https://github.com/mxfold/mxfold2/releases/download/v0.1.1/Rivas.tar.gz https://github.com/bioinformatics-sannio/ncrna-deep/tree/master/datasets/Rfam-novel", "comments": "The work scales BERT-style masked pretraining to 36M ncRNAs (clustered at 0.7 identity) and fine-tunes with simple heads across structure and function tasks. The held-out-family ArchiveII benchmark with RNA-FM, UFold, MXfold2, RNAstructure and CONTRAfold baselines supports the generalization claim, and the authors mention an ablation study. Caveats: the claim of being first to show language-model inter-family generalization is the authors' own. Pretraining-to-benchmark sequence overlap is not clearly excluded in the excerpts. Telomerase RNA is a failure case, and per-task fine-tuning confounds comparisons with baselines. The contribution is mainly scaling and adaptation.", "relevance": "Bears on biological language models and self-supervised pretraining on sequences, with indirect links to structure prediction and RNA as a drug target.", "impact": 7, "rel": 6, "cats": [3], "cover": 1, "manual": false, "evidence": "fulltext", "in_library": false, "origin": "", "doi": "10.1038/s41467-025-60872-5"}, {"rank": 12, "title": "Virtual Cell Challenge: Toward a Turing test for the virtual cell", "authors": "Yusuf Roohani, ..., Dave P. Burke", "institution": "Arc Research Institute", "venue": "Cell", "date": "2025-06-01", "url": "https://doi.org/10.1016/j.cell.2025.06.008", "insights": "New metric: none. New eval data: purpose-built perturbation datasets for the competition. Design \u0026 novelty: recurring open benchmark competition. Eval limits: perspective article; no model results reported.", "results": ["Establishes a recurring open benchmark competition for cellular perturbation response prediction; no quantitative results are reported."], "limitation": "A perspective describing a planned competition; no empirical evaluation of models is reported.", "resources": "", "comments": "This commentary describes the framing and goals of an open benchmark for predicting cellular responses to perturbations. Its value lies in community standardization of evaluation and datasets rather than in new methods or results. The adequacy of the benchmark design and metrics can only be judged once the challenge data and outcomes are available.", "relevance": "Bears on perturbation response prediction and virtual cell models in single-cell genomics.", "impact": 6, "rel": 7, "cats": [2], "cover": 1, "manual": false, "evidence": "abstract", "in_library": false, "origin": "", "doi": "10.1016/j.cell.2025.06.008"}]</script>
+<script id="cats" type="application/json">[{"id": 0, "label": "Protein structure prediction \u0026 design", "sources": [], "color": "#2b6cb0"}, {"id": 1, "label": "Genomic variant \u0026 regulatory effect prediction", "sources": [], "color": "#b7791f"}, {"id": 2, "label": "Single-cell genomics ML", "sources": [], "color": "#2f855a"}, {"id": 3, "label": "Biological foundation \u0026 language models", "sources": [], "color": "#805ad5"}, {"id": 4, "label": "Molecular ML for drug discovery", "sources": [], "color": "#c0392b"}]</script>
 <script id="inputs" type="application/json">[]</script>
 <script>
-let TAGS = {"1": {"app": ["Multi-omic modeling", "Sequence annotation"], "method": ["Instruction-tuned LLM", "Multimodal foundation model"]}, "2": {"app": ["De novo binder design", "Therapeutics"], "method": ["Diffusion generative model", "Structure-based design"]}, "3": {"app": ["Virtual cell", "Perturbation prediction"], "method": ["Single-cell foundation model", "Benchmark design"]}, "4": {"app": ["Regulatory genomics", "Variant effect"], "method": ["DNA foundation model", "Benchmarking"]}, "5": {"app": ["Protein engineering", "Variant effect"], "method": ["Protein language model", "Biophysics-informed ML"]}, "6": {"app": ["Regulatory genomics", "Functional element discovery"], "method": ["Genomic language model", "In-silico mutagenesis"]}, "7": {"app": ["Single-cell genomics", "Data exploration"], "method": ["Multimodal foundation model", "Cell + language learning"]}, "8": {"app": ["Regulatory genomics", "Variant effect"], "method": ["DNA language model", "Representation probing"]}, "9": {"app": ["Protein-ligand co-folding", "Structure prediction"], "method": ["Co-folding networks", "Model interpretability"]}, "10": {"app": ["Single-cell genomics", "Model evaluation"], "method": ["Single-cell foundation model", "Biology-driven probing"]}, "11": {"app": ["Single-cell genomics", "Cell-type annotation"], "method": ["Single-cell foundation model", "Transfer learning"]}, "12": {"app": ["RNA structure prediction", "RNA biology"], "method": ["RNA language model", "Transfer learning"]}};
-let APPROACH = {"1": {"algo": "Multimodal genomic LLM", "nov": 70, "aim": "Unify DNA/RNA/protein tasks behind one conversational interface. Limitation addressed: fragmentation of one-off task-specific models.", "data": "Curated multi-omic instruction corpus over sequence understanding + generation tasks.", "model": "Instruction-tuned multimodal transformer that routes across biological sequence modalities from natural-language prompts.", "question": "Can a single agent answer heterogeneous molecular-biology questions across sequence types?"}, "2": {"algo": "Deep generative macrocycle design", "nov": 85, "aim": "Design high-affinity macrocyclic binders from scratch. Limitation addressed: lack of general methods for programmable macrocycle binders.", "data": "Protein-structure priors plus designed-and-tested macrocycle set.", "model": "Deep generative/structure-prediction stack adapted to macrocyclic constraints, filtered by predicted affinity then wet-lab validated.", "question": "Can we program high-affinity binders in a synthesizable, drug-like chemotype?"}, "3": {"algo": "Virtual-cell benchmark", "nov": 55, "aim": "Define a Turing-test-style benchmark for virtual cells. Limitation addressed: no shared success criterion for single-cell foundation models.", "data": "Curated single-cell perturbation datasets held out as the challenge set.", "model": "A community challenge scoring models on predicting unseen cellular perturbation responses.", "question": "Can a model predict how a cell responds to an unseen perturbation?"}, "4": {"algo": "DNA-FM benchmark suite", "nov": 45, "aim": "Compare DNA foundation models under one protocol. Limitation addressed: incomparable, self-reported DNA-FM results.", "data": "Multiple genomic/genetic task datasets standardized into a benchmark.", "model": "Uniform fine-tuning/probing harness across pretrained DNA foundation models.", "question": "Which genomic foundation model actually performs best, and on what?"}, "5": {"algo": "Biophysics-conditioned PLM", "nov": 65, "aim": "Improve fitness/variant-effect prediction for engineering. Limitation addressed: sequence-only PLMs ignore structure/energetics.", "data": "Protein sequences + structural/biophysical features; DMS fitness benchmarks for eval.", "model": "Protein language model augmented with biophysical priors, trained to predict mutational effects.", "question": "How do mutations change protein fitness, and can biophysics-aware PLMs predict it better?"}, "6": {"algo": "Nucleotide-dependency analysis", "nov": 65, "aim": "Detect functional elements via genomic-LM dependencies. Limitation addressed: black-box genomic LMs give predictions but little mechanism.", "data": "Reference genomes probed by the LM; known functional annotations for validation.", "model": "Systematic paired-nucleotide perturbation of a genomic LM to map dependencies.", "question": "Which bases interact functionally, and can a language model reveal them?"}, "7": {"algo": "Chat-based single-cell model", "nov": 60, "aim": "Query single-cell data in natural language. Limitation addressed: expert-only, code-heavy single-cell analysis.", "data": "Single-cell expression datasets paired with textual annotations/tasks.", "model": "Multimodal model aligning cell representations with a language interface.", "question": "Can researchers explore cell atlases by simply asking questions?"}, "8": {"algo": "DNA-LM probing benchmark", "nov": 45, "aim": "Measure whether pretrained DNA LMs encode useful regulatory signal. Limitation addressed: hype without controlled comparison to supervised baselines.", "data": "Regulatory-genomics datasets used to probe frozen/fine-tuned DNA-LM embeddings.", "model": "Probing/fine-tuning of several pretrained DNA language models against supervised CNN baselines.", "question": "Do genomic foundation models actually capture cis-regulatory grammar?"}, "9": {"algo": "Co-folding physics probing", "nov": 50, "aim": "Test whether co-folding models learn interaction physics. Limitation addressed: pose accuracy metrics hide non-physical reasoning.", "data": "Protein-ligand complexes with controlled physical perturbations.", "model": "Systematic probing of AlphaFold3-class co-folding networks for physical consistency.", "question": "Do neural co-folding models understand protein-ligand physics, or pattern-match?"}, "10": {"algo": "scFM biology-driven probing", "nov": 40, "aim": "Assess what single-cell foundation models truly learn. Limitation addressed: benchmark-only claims detached from biology.", "data": "Single-cell datasets with biologically meaningful evaluation tasks.", "model": "Controlled probing of scFMs against biology-grounded expectations.", "question": "Do single-cell foundation models capture real biological structure?"}, "11": {"algo": "scFM survey/taxonomy", "nov": 30, "aim": "Organize single-cell foundation models and their use cases. Limitation addressed: fragmented, hard-to-compare scFM literature.", "data": "Large-scale single-cell atlases underlying the surveyed models.", "model": "Comparative synthesis of transformer-based single-cell foundation models (pretraining + fine-tuning regimes).", "question": "How should AI foundation models be built and used for single-cell biology?"}, "12": {"algo": "RNA language model (RiNALMo)", "nov": 60, "aim": "Build a general RNA LM that transfers to structure prediction. Limitation addressed: task-specific RNA models with limited transfer.", "data": "Large unlabeled RNA sequence corpus for pretraining; structure datasets for eval.", "model": "Transformer RNA language model pretrained then applied to structure-prediction tasks.", "question": "Can a pretrained RNA language model predict RNA structure across families?"}};
+let TAGS = {"1": {"app": ["Protein engineering", "Mutational effect prediction", "Protein design"], "method": ["Protein language model", "Simulation-based pretraining", "Transfer learning"]}, "2": {"app": ["De novo binder design", "Macrocyclic peptides", "Therapeutic design"], "method": ["Diffusion model", "RoseTTAFold-based design", "Structure-based design"]}, "3": {"app": ["Regulatory genomics", "Splicing", "Conversational biology agents"], "method": ["Multimodal LLM", "DNA foundation model", "Instruction tuning"]}, "4": {"app": ["Variant effect prediction", "Regulatory motif discovery", "RNA structure"], "method": ["Genomic language model", "Model interpretability"]}, "5": {"app": ["Regulatory genomics", "Sequence-to-function prediction"], "method": ["Genomic language model", "Benchmarking", "Representation probing"]}, "6": {"app": ["Single-cell genomics", "Cell type annotation", "Perturbation response", "Gene regulatory networks"], "method": ["Single-cell foundation model", "Transformer", "Self-supervised pretraining", "Review"]}, "7": {"app": ["Protein-ligand structure prediction", "Model robustness"], "method": ["Co-folding models", "Adversarial evaluation"]}, "8": {"app": ["Variant effect prediction", "Gene expression prediction", "QTL identification"], "method": ["DNA foundation model", "Benchmarking", "Zero-shot embeddings"]}, "9": {"app": ["Cell type annotation", "Single-cell data exploration"], "method": ["Contrastive learning", "Multimodal LLM", "Foundation model"]}, "10": {"app": ["Batch integration", "Cell type annotation", "Drug sensitivity prediction"], "method": ["Single-cell foundation model", "Benchmarking"]}, "11": {"app": ["RNA secondary structure prediction", "RNA function prediction"], "method": ["RNA language model", "Masked language modeling", "Transformer", "Fine-tuning"]}, "12": {"app": ["Perturbation response prediction", "Virtual cell"], "method": ["Benchmark competition", "Cell state models"]}};
+let APPROACH = {"1": {"algo": "METL (mutational effect transfer learning): simulation pretraining then fine-tuning", "nov": ["Application", "Adaptation"], "aim": "Pretrain protein language models on molecular simulation data to improve low-data and extrapolation protein engineering. Limitation addressed: evolution-only pLMs ignore biophysics.", "question": "Does pretraining on Rosetta biophysical simulations improve sequence–function prediction with small training sets and extrapolation?", "data": "Millions of Rosetta-modeled variants (55 attributes) for pretraining; 11 experimental sequence-function datasets for fine-tuning and evaluation.", "model": "Transformer encoder with relative (3D structure-based) position embeddings", "method": "Source transformer is pretrained to regress 55 Rosetta score terms of modeled variants (local per-protein or global). Backbone plus new linear head is then fine-tuned or used for feature extraction on experimental data."}, "2": {"algo": "RFpeptides (RFdiffusion with cyclic offset, ProteinMPNN, AfCycDesign/RF2 filtering)", "nov": ["Application", "Adaptation"], "aim": "Design protein-binding macrocycles de novo. Limitation addressed: no robust computational route to macrocyclic binders without large-scale library screening or known ligand information.", "question": "Can diffusion-based design produce high-affinity macrocyclic binders with predictable binding modes?", "data": "Four targets (MCL1, MDM2, GABARAP, RbtA); fewer than 20 designs per target tested; three X-ray complex structures.", "model": "RFdiffusion and RoseTTAFold2 with cyclic relative position encoding", "method": "A cyclic relative position encoding is added to RF2 and RFdiffusion for macrocycle backbone generation. Sequences from ProteinMPNN with Rosetta Relax are filtered by AfCycDesign/RF2 re-prediction (iPAE), Rosetta metrics and clustering."}, "3": {"algo": "ChatNT (NT v2 DNA encoder + English-aware Perceiver projection + frozen LLM decoder)", "nov": ["Application", "Adaptation"], "aim": "Build a single conversational agent that solves diverse DNA, RNA and protein sequence tasks from English instructions. Limitation addressed: foundation models need per-task fine-tuning and cannot transfer across tasks.", "question": "Can one instruction-tuned multimodal model solve diverse biological sequence tasks and match specialized models?", "data": "Instruction version of Nucleotide Transformer benchmark (18 tasks); curated 27-task set with 605 million DNA tokens and 273 million English tokens.", "model": "Nucleotide Transformer v2 (500M) encoder with frozen LLaMA-style English decoder", "method": "A Perceiver resampler projects encoder embeddings into the decoder's word-embedding space, conditioned on the English question; encoder and projection are trained end to end with the decoder frozen. Perplexity over answer tokens gives calibrated probabilities."}, "4": {"algo": "Nucleotide dependency maps from in-silico mutagenesis of gLMs", "nov": ["Application", "Adaptation"], "aim": "Extract functional elements and interactions from gLMs without supervision. Limitation addressed: lack of interpretable, alignment-free ways to read functional signal from gLMs.", "question": "Do gLM-derived nucleotide dependencies identify deleterious variants, regulatory elements and RNA structure contacts?", "data": "14 pretrained gLMs; yeast TF/splicing data, GTEx outliers, RNA structure databases (Archive II, CompaRNA, bpRNA), ClinVar/eQTL.", "model": "Pretrained masked and autoregressive gLMs (SpeciesLM, RiNALMo, SpliceBERT, Nucleotide Transformer, Evo)", "method": "Each query nucleotide is mutated to all three alternatives and the odds-ratio change at every target position is recorded. Block scores (first quartile over 6-nt windows) and 5×5 convolution filters read off motifs and antiparallel contacts."}, "5": {"algo": "Benchmark of frozen gLM embeddings against one-hot baselines", "nov": ["Application"], "aim": "Evaluate whether pretrained gLM representations encode cell-type-specific cis-regulatory information. Limitation addressed: prior benchmarks used non-cell-type-specific tasks, weak baselines and fine-tuning.", "question": "Do frozen gLM representations outperform one-hot supervised models on cell-type-specific regulatory prediction?", "data": "lentiMPRA, ChIP-seq, CAGI5 MPRA, ASCOT splicing, INSERT-seq and eCLIP datasets; DNA and RNA regulation tasks.", "model": "Nucleotide Transformer, GPN, HyenaDNA, DNABERT2; Sei and RBP supervised models", "method": "Frozen gLM embeddings (CLS, mean or full) feed linear, MLP or CNN heads, compared with one-hot CNNs and supervised-pretrained embeddings. Zero-shot variant scores and masking-entropy attribution are also used."}, "6": {"algo": "Narrative review of transformer-based single-cell foundation models", "nov": ["Application"], "aim": "Summarize scFM concepts, architectures, applications and limitations and outline future directions. Limitation addressed: no consolidated overview of rapidly growing scFM approaches.", "question": "What are the key concepts, applications, limitations and future needs of single-cell foundation models?", "data": "Published scFM literature and public single-cell data sources as discussed; no new data analyzed.", "model": "Transformer-based scFMs (survey)", "method": "No new method; the review organizes scFMs by pretraining data, tokenization of nonsequential omics data, architecture, pretraining tasks and downstream tasks, and discusses interpretability, data quality and compute."}, "7": {"algo": "Adversarial perturbation benchmark with funnel-metadynamics validation", "nov": ["Application"], "aim": "Test whether co-folding models respond to physically meaningful perturbations of binding sites and ligands. Limitation addressed: high benchmark accuracy does not show learned physics.", "question": "Do co-folding models respond to binding-site and ligand perturbations as physical principles predict?", "data": "CDK2-ATP (1B38), MEK1 (7XLP), glucose dehydrogenase (2VWH) complexes, plus CASF proteins in supplementary analyses.", "model": "AlphaFold3, Boltz-1, Chai-1, RoseTTAFold All-Atom", "method": "Binding-site residues are mutated (glycine, phenylalanine, dissimilar by Miyata distance) and ligands methylated or charge-altered. Co-folding poses are compared with funnel-metadynamics bound/unbound probabilities from 1000 ns triplicate simulations."}, "8": {"algo": "Zero-shot embedding benchmark of DNA foundation models with pooling and classifier comparison", "nov": ["Application"], "aim": "Systematically compare DNA foundation models on genomic and genetic tasks using zero-shot embeddings. Limitation addressed: lack of comprehensive, unbiased evaluations across diverse tasks.", "question": "How do DNA foundation models compare with each other and with specialized models across genomic tasks, and which pooling works best?", "data": "57 classification datasets, gene expression, pathogenic and QTL variant sets, and TAD sequences from public sources.", "model": "DNABERT-2, NT-v2, HyenaDNA, Caduceus-Ph, GROVER", "method": "Frozen token embeddings are pooled (summary token, mean, max) and passed to random forest, Naïve Bayes or elastic-net classifiers. Variant effects are compared with Enformer, Sei and AlphaGenome, and HyenaDNA is re-pretrained on multi-species data."}, "9": {"algo": "CellWhisperer (CLIP-style transcriptome-text contrastive embedding + LLaVA-style LLM chat)", "nov": ["Application", "Adaptation"], "aim": "Enable natural-language exploration of transcriptome data. Limitation addressed: difficult interpretation of expression data for users without programming expertise.", "question": "Can joint transcriptome-text embeddings support zero-shot annotation and chat-based exploration of single-cell data?", "data": "1,082,413 human transcriptome-text pairs from GEO/ARCHS4 and CELLxGENE Census; 106,610 AI-generated conversations; held-out evaluation datasets.", "model": "Geneformer and BioBERT encoders with Mistral 7B", "method": "Geneformer and BioBERT are aligned contrastively (CLIP/LiT-adapted) on LLM-curated pairs. A two-layer adapter maps the 2,048-dimensional embedding to eight Mistral 7B token embeddings, tuned on 106,610 conversations (LLaVA-style)."}, "10": {"algo": "Zero-shot scFM benchmark with scGraph-OntoRWR, ROGI and Pareto ranking", "nov": ["Application", "Adaptation"], "aim": "Benchmark scFMs against baselines under leakage-free, clinically relevant conditions. Limitation addressed: unclear advantages of scFMs over standard methods and metrics ignoring cell-type biology.", "question": "Do single-cell foundation models offer biological insight and task advantages over simpler methods?", "data": "Five integration/annotation datasets (16,000~585,000 cells), two gene-level datasets, TISCH2 cancer data (7 cancer types), drug response.", "model": "Geneformer, scGPT, UCE, scFoundation, LangCell, scCello versus HVG, scVI, Harmony, Seurat", "method": "Frozen scFM embeddings feed fixed task-specific models (OnClass, SCAD). scGraph-OntoRWR uses a cell-ontology reference graph with random walks, ROGI is extended to single-cell representations, and models are ranked by non-dominated sorting."}, "11": {"algo": "RiNALMo: masked RNA language model with task-specific fine-tuning heads", "nov": ["Application", "Adaptation"], "aim": "Build a general-purpose RNA language model that transfers to structure and function tasks. Limitation addressed: poor generalization of deep learning secondary structure predictors to unseen RNA families.", "question": "Can a large pretrained RNA language model generalize to unseen RNA families in secondary structure prediction?", "data": "Pretraining on 36M ncRNA sequences (17M clusters); evaluation on bpRNA, ArchiveII, splice-site, UTR and Rfam benchmarks.", "model": "Encoder-only Transformer, 33 blocks, 650M parameters", "method": "Masked-LM pretraining (15% masking, nucleotide tokens, RoPE, FlashAttention-2, SwiGLU) on curated ncRNA. Fine-tuned with task heads: ResNet on outer-concatenated pair representations for structure, CLS-MLP for classification, ResNet for UTR regression."}, "12": {"algo": "Open benchmark competition framework", "nov": ["Application"], "aim": "Catalyze progress on predicting cell responses to perturbations. Limitation addressed: lack of standardized evaluation and purpose-built datasets.", "question": "How can a community benchmark drive virtual cell model development?", "data": "Purpose-built perturbation datasets provided by the Arc Institute.", "model": "Not applicable", "method": "Defines a recurring open competition that supplies evaluation framework and datasets, with no new learning method."}};
 let DATA = JSON.parse(document.getElementById('data').textContent);
 let CATEGORIES = JSON.parse(document.getElementById('cats').textContent) || [];
 // hydrate(): fold TAGS into each paper and normalise cats; re-run after regenerate.
@@ -251,10 +386,31 @@ function coverBadge(p){
   const cover = (p.cats||[]).length;
   return ` &middot; <span class="${cover>=2?'coverhi':''}">Matches ${cover} of ${M} interests</span>`;
 }
-function gaugeHTML(nov){
-  const n = Math.max(0,Math.min(100, nov==null?0:nov));
-  return `<span class="gauge"><span class="gtrack"><span class="gmark" style="left:${n}%"></span></span>`
-    + `<span class="glabel">Novelty ${n}/100</span></span>`;
+// Novelty: three kinds of contribution, each a box that is highlighted when it
+// applies (one or more). Same neutral style for all, so no kind reads as "better".
+const NOVELTY = [
+  ['Application','Application / resource','Existing methods applied to new data or a new problem, or a new dataset, benchmark or tool'],
+  ['Adaptation','Adaptation','Existing components modified or combined'],
+  ['Algorithm','Algorithm','A fundamentally new learning algorithm, objective or architectural principle'],
+];
+const LEGACY_NOV = {'New method':'Algorithm', Low:'Application', Medium:'Adaptation', High:'Algorithm'};
+function noveltyOf(a){
+  let v = a.nov != null && a.nov !== '' && !(Array.isArray(a.nov) && !a.nov.length) ? a.nov : a.nov_ml;  // older pages
+  const one = x => typeof x === 'number' ? ['Application','Adaptation','Algorithm'][x < 34 ? 0 : x < 67 ? 1 : 2] : (LEGACY_NOV[x] || x);
+  const kinds = (Array.isArray(v) ? v : (v == null || v === '' ? [] : [v])).map(one);
+  return NOVELTY.map(([k])=>k).filter(k=>kinds.includes(k));
+}
+function noveltyHTML(a){
+  const on = noveltyOf(a);
+  if(!on.length) return '';
+  return `<div class="nboxes" role="list" aria-label="Kind of contribution">`
+    + NOVELTY.map(([k,label,help])=>`<span role="listitem" class="nbox${on.includes(k)?' on':''}" `
+      + `title="${label}: ${help}" aria-label="${label}${on.includes(k)?' (applies)':''}">${label}</span>`).join('')
+    + `</div>`;
+}
+function noveltyText(a){
+  const on = noveltyOf(a);
+  return on.length ? 'Contribution: ' + NOVELTY.filter(([k])=>on.includes(k)).map(([,l])=>l).join(' + ') : '';
 }
 function aimOf(p){
   const a = APPROACH[p.rank]; return a && a.aim ? a.aim : (p.aim||'');
@@ -262,11 +418,12 @@ function aimOf(p){
 function approachDD(p){
   const a = APPROACH[p.rank] || {};
   const algo = a.algo ? `<span class="algo">${esc(a.algo)}</span>` : '';
-  return `${algo}${gaugeHTML(a.nov)}`
+  return `${algo}${noveltyHTML(a)}`
     + `<ul>`
+    + (a.question ? `<li><b>Key question:</b> ${esc(a.question)}</li>`:'')
     + (a.data ? `<li><b>Data:</b> ${esc(a.data)}</li>`:'')
     + (a.model ? `<li><b>Model:</b> ${esc(a.model)}</li>`:'')
-    + (a.question ? `<li><b>Key question:</b> ${esc(a.question)}</li>`:'')
+    + (a.method ? `<li><b>Methodological novelty:</b> ${esc(a.method)}</li>`:'')
     + `</ul>`;
 }
 function evalDD(p){
@@ -290,7 +447,7 @@ function resultsDD(p){
 
 function cardHTML(p){
   const st = status[p.rank];
-  const cls = st ? ' st-'+st : '';
+  const cls = (st ? ' st-'+st : '') + (p.origin ? ' from-pp' : '');
   const btn = (key,label)=>`<button class="sbtn${st===key?' on-'+key:''}" data-status="${key}" data-rank="${p.rank}">${label}</button>`;
   return `<article class="card${cls}" id="card-${p.rank}" data-rank="${p.rank}">
     <div class="hrow">
@@ -298,16 +455,17 @@ function cardHTML(p){
       <h3><a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.title)}</a></h3>
     </div>
     <div class="meta">${esc(p.authors)} &mdash; ${esc(p.institution)}</div>
-    <div class="meta"><span class="badge">${esc(p.venue)}</span> ${esc(p.date)}</div>
-    <div class="scores">Field impact ${p.impact}/10 &middot; Relevance to you ${p.rel}/10${coverBadge(p)}</div>
+    <div class="meta"><span class="badge">${esc(p.venue)}</span> ${esc(p.date)}${p.origin?` <span class="badge origin">${esc(p.origin)}</span>`:p.manual?' <span class="badge manual">Manually added</span>':''}${p.evidence==='abstract'?' <span class="badge" title="No open full text; analyzed from the abstract">Abstract only</span>':''}${p.in_library&&!p.origin?' <span class="badge library" title="Already in your Paperpile library">In your Paperpile</span>':''}</div>
+    <div class="scores">Field impact ${p.impact}/10 &middot; Relevance ${p.rel}/10${coverBadge(p)}</div>
     <div class="tagrow">${tagChips(p)}${catChips(p)}</div>
     <div class="statusbar">
       ${btn('important','&#9733; Important')}
       ${btn('further','&#8599; Read further')}
       ${btn('done','&#10003; Done reviewing')}
       <button class="btn copy" data-copy="${p.rank}">&#8681; Copy for OneNote</button>
+      ${ppButton(p)}
     </div>
-    <div class="why"><b>Why it's on your list:</b> ${esc(p.relevance)}</div>
+    <div class="why"><b>Relevance:</b> ${esc(p.relevance)}</div>
     <dl>
       <dt>Aim</dt><dd>${esc(aimOf(p))}</dd>
       <dt>Main approach</dt><dd>${approachDD(p)}</dd>
@@ -355,8 +513,8 @@ function render(){
   document.getElementById('sidehead').textContent = `Papers (${rows.length})`;
   document.getElementById('sidelist').innerHTML = rows.map(p=>{
     const st = status[p.rank];
-    const bg = st==='important'?'var(--important)':st==='further'?'var(--further)':st==='done'?'var(--done)':'var(--accent)';
-    const sub = ((p.app||[])[0]||'') + (p.venue? ' &middot; '+esc(p.venue):'');
+    const bg = st==='important'?'var(--important)':st==='further'?'var(--further)':st==='done'?'var(--done)':p.origin?'var(--pp)':'var(--accent)';
+    const sub = (p.origin?esc(p.origin)+' &middot; ':p.manual?'Manually added &middot; ':'') + ((p.app||[])[0]||'') + (p.venue? ' &middot; '+esc(p.venue):'');
     return `<li data-goto="${p.rank}"><span class="chip" style="background:${bg}">${p.rank}</span>
       <span><span class="s-title">${esc(p.title)}</span><br><span class="s-sub">${sub}</span></span></li>`;
   }).join('');
@@ -376,9 +534,10 @@ function oneNoteHTML(p){
   const evalItems = (()=>{ const d = document.createElement('div'); d.innerHTML = evalDD(p);
     return Array.from(d.querySelectorAll('li')).map(li=>`<li>${li.innerHTML}</li>`).join(''); })();
   const bul = [];
+  if(a.question) bul.push(`<li><b>Key question:</b> ${esc(a.question)}</li>`);
   if(a.data) bul.push(`<li><b>Data:</b> ${esc(a.data)}</li>`);
   if(a.model) bul.push(`<li><b>Model:</b> ${esc(a.model)}</li>`);
-  if(a.question) bul.push(`<li><b>Key question:</b> ${esc(a.question)}</li>`);
+  if(a.method) bul.push(`<li><b>Methodological novelty:</b> ${esc(a.method)}</li>`);
   const resItems = (p.results||[]).filter(x=>x!=null && String(x).trim())
     .map(x=>`<li>${esc(x)}</li>`).join('');
   return `<div style="font-family:Calibri,sans-serif">
@@ -388,14 +547,14 @@ function oneNoteHTML(p){
        Relevance ${p.rel}/10 &middot; <a href="${esc(p.url)}">${esc(p.url)}</a></p>
     <p><b>Application:</b> ${esc((p.app||[]).join(', '))} &nbsp; <b>Method:</b> ${esc((p.method||[]).join(', '))}</p>
     <p><b>Aim:</b> ${esc(aimOf(p))}</p>
-    <p><b>Main approach:</b> ${esc(a.algo||'')} (Novelty ${a.nov==null?'?':a.nov}/100)</p>
+    <p><b>Main approach:</b> ${esc(a.algo||'')}${noveltyText(a)?` (${esc(noveltyText(a))})`:''}</p>
     <ul>${bul.join('')}</ul>
     <p><b>Evaluation:</b></p><ul>${evalItems}</ul>
     ${resItems?`<p><b>Results:</b></p><ul>${resItems}</ul>`:''}
     <p><b>Limitation / next step:</b> ${esc(p.limitation)}</p>
     <p><b>Resources:</b> ${esc(p.resources)}</p>
     <p><b>Comments:</b> ${esc(p.comments)}</p>
-    <p><b>Why relevant:</b> ${esc(p.relevance)}</p>
+    <p><b>Relevance:</b> ${esc(p.relevance)}</p>
   </div>`;
 }
 
@@ -419,9 +578,9 @@ async function copyHTML(html, msg){
   }
 }
 let toastT;
-function toast(msg){
+function toast(msg, ms){
   const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
-  clearTimeout(toastT); toastT = setTimeout(()=>t.classList.remove('show'), 1600);
+  clearTimeout(toastT); toastT = setTimeout(()=>t.classList.remove('show'), ms || 1600);
 }
 
 // ----- Event delegation (§9) -----
@@ -497,6 +656,19 @@ async function copyText(text, msg){
   try{ await navigator.clipboard.writeText(text); toast(msg); }
   catch(e){ toast('Copy failed'); }
 }
+// Profile: the header field holds the review's profile; it is sent only when
+// the user changed it (otherwise the model writes a fresh one).
+let PROFILE_BASE = document.getElementById('profile').value.trim();
+function profileEdited(){
+  const v = document.getElementById('profile').value.trim();
+  return !!v && v !== PROFILE_BASE;
+}
+function sinceDate(span){
+  const m = /^(\d+)([my])$/.exec(span||''); if(!m) return '';
+  const d = new Date(); const n = +m[1];
+  if(m[2]==='y') d.setFullYear(d.getFullYear()-n); else d.setMonth(d.getMonth()-n);
+  return d.toISOString().slice(0,10);
+}
 function applyPayload(pl){
   DATA = pl.data || [];
   TAGS = pl.tags || {};
@@ -506,7 +678,11 @@ function applyPayload(pl){
     INPUTS = pl.inputs.map(i=>({kind:i.kind, value:i.value}));
     ensureIds(); saveInputs();
   }
-  hydrate(); tagFilter = null; renderInputs(); render();
+  if(pl.profile){
+    PROFILE_BASE = pl.profile.trim();
+    document.getElementById('profile').value = pl.profile;
+  }
+  hydrate(); markAddedFromSite(); tagFilter = null; renderInputs(); render();
 }
 function offlineFallback(){
   // No live backend (opened via file://, or server down): fall back to a
@@ -521,8 +697,42 @@ function doneMsg(){
   return `Updated — ${DATA.length} paper${DATA.length===1?'':'s'} across `
     + `${CATEGORIES.length} categor${CATEGORIES.length===1?'y':'ies'}.`;
 }
+// ----- Progress panel while a review is generated (or papers are re-read) -----
+const GP_STAGES = [
+  ['intake_agent','Reading the request'], ['scope_agent','Defining interests'],
+  ['researcher','Searching 5 sources'], ['added_papers','Adding papers'],
+  ['rank_agent','Ranking'], ['deepen_agent','Reading full texts'],
+  ['library_agent','Finishing up'],
+];
+const gp = {timer:null, start:0, idx:-1, stages:[]};
+function gpTick(){
+  const s = Math.floor((Date.now()-gp.start)/1000);
+  document.getElementById('gp-time').textContent = `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+}
+function gpLabel(text){
+  const n = gp.stages.length;
+  document.getElementById('gp-label').textContent = text + (n && gp.idx >= 0 ? ` (${gp.idx + 1} of ${n})` : '');
+}
+function gpStart(label, note, stages){
+  gp.start = Date.now(); gp.idx = stages.length ? 0 : -1; gp.stages = stages;
+  gp.text = label; gpLabel(label);
+  const el = document.getElementById('gp'); el.title = note; el.hidden = false;
+  document.getElementById('istatus').textContent = '';
+  gpTick(); clearInterval(gp.timer); gp.timer = setInterval(gpTick, 1000);
+}
+function gpStage(stage, label){
+  const i = gp.stages.findIndex(([k])=>k===stage);
+  if(i > gp.idx) gp.idx = i;
+  if(label) gp.text = label;
+  gpLabel(gp.text);
+}
+function gpStop(){ clearInterval(gp.timer); gp.timer = null; document.getElementById('gp').hidden = true; }
+
 async function regenerate(){
-  if(!INPUTS.length){ setStatus('Add at least one interest first.'); return; }
+  const ppKey = (document.getElementById('ppkey').value||'').trim();
+  const ppLabel = (document.getElementById('pplabel').value||'').trim();
+  if(!INPUTS.length && !ppLabel){ setStatus('Add at least one interest or a Paperpile label first.'); return; }
+  if(ppLabel && !ppKey){ setStatus('Enter your Paperpile key to include a label.'); document.getElementById('ppkey').focus(); return; }
   const keyEl = document.getElementById('apikey');
   const key = (keyEl ? keyEl.value : '').trim();
   if(!key){ setStatus('Enter your API key first.'); if(keyEl) keyEl.focus(); return; }
@@ -530,11 +740,15 @@ async function regenerate(){
   const model = ((document.getElementById('model')||{}).value || '').trim();
   const btn = document.getElementById('regen');
   btn.disabled = true;
-  setStatus('Starting…');
+  setStatus('');
+  gpStart('Starting…', 'A full review usually takes 3–5 minutes: it searches five sources, ranks the papers, '
+    + 'then reads the selected ones in full. Keep this tab open; the review appears here when it is ready.', GP_STAGES);
   try{
     const res = await fetch('/review/stream', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({inputs: INPUTS.map(i=>({kind:i.kind, value:i.value})), provider, model, apiKey:key})
+      body: JSON.stringify({inputs: INPUTS.map(i=>({kind:i.kind, value:i.value})), provider, model, apiKey:key,
+        paperpileKey: ppKey, paperpileLabel: ppLabel, paperpileAddedSince: sinceDate(document.getElementById('ppsince').value),
+        profile: profileEdited() ? document.getElementById('profile').value.trim() : ''})
     });
     if(!res.ok || !res.body){
       let detail=''; try{ detail=(await res.json()).detail||''; }catch(_){}
@@ -554,7 +768,7 @@ async function regenerate(){
         const line = frame.split('\n').find(l=>l.startsWith('data:'));
         if(!line) continue;
         let msg; try{ msg = JSON.parse(line.slice(5).trim()); }catch(_){ continue; }
-        if(msg.type==='progress'){ setStatus(msg.label); }
+        if(msg.type==='progress'){ gpStage(msg.stage, msg.label); }
         else if(msg.type==='done'){ applyPayload(msg.payload); done=true; setStatus(doneMsg()); }
         else if(msg.type==='error'){ errored = msg.detail || 'Could not regenerate.'; }
       }
@@ -564,28 +778,286 @@ async function regenerate(){
   }catch(err){
     if(err instanceof TypeError) offlineFallback();          // fetch failed = no backend
     else setStatus('Could not regenerate: ' + err.message);  // backend reachable but errored
-  }finally{ btn.disabled = false; }
+  }finally{ btn.disabled = false; gpStop(); }
 }
 document.getElementById('regen').addEventListener('click', regenerate);
 
 // BYO model settings: remember provider/model, default the model per provider.
-// (The API key is deliberately NOT persisted — it lives only in the field.)
+// (The API and Paperpile keys are deliberately NOT persisted — they live only
+// in their fields.)
+const PROVIDERS = {
+  anthropic: {models:['claude-sonnet-5','claude-sonnet-5-5','claude-opus-5-5','claude-haiku-5-5'],
+    docs:'https://docs.anthropic.com/en/docs/about-claude/models/overview',
+    keys:'https://console.anthropic.com/settings/keys'},
+  gemini: {models:['gemini-flash-latest'],
+    docs:'https://ai.google.dev/gemini-api/docs/models',
+    keys:'https://aistudio.google.com/apikey'},
+  openai: {models:['gpt-4o','gpt-5'],
+    docs:'https://platform.openai.com/docs/models',
+    keys:'https://platform.openai.com/api-keys'},
+  openrouter: {models:['anthropic/claude-sonnet-5.5','anthropic/claude-opus-5.5','anthropic/claude-haiku-5.5','openai/gpt-4o','google/gemini-3.8-flash'],
+    docs:'https://openrouter.ai/models',
+    keys:'https://openrouter.ai/settings/keys'},
+};
 (function(){
   const prov = document.getElementById('provider'), mdl = document.getElementById('model');
   if(!prov || !mdl) return;
-  const DEF = {gemini:'gemini-flash-latest', anthropic:'claude-sonnet-5', openai:'gpt-4o'};
   const MS = 'byo-model-cfg-v1';
+  const DEFAULTS = Object.values(PROVIDERS).map(p=>p.models[0]);
   try{ const c = JSON.parse(localStorage.getItem(MS)||'{}');
-    if(c.provider) prov.value = c.provider; if(c.model) mdl.value = c.model; }catch(e){}
-  if(!mdl.value) mdl.value = DEF[prov.value] || '';
-  const save = ()=> localStorage.setItem(MS, JSON.stringify({provider:prov.value, model:mdl.value}));
-  prov.addEventListener('change', ()=>{
-    if(!mdl.value || Object.values(DEF).includes(mdl.value)) mdl.value = DEF[prov.value] || '';
-    save();
-  });
+    if(c.provider && PROVIDERS[c.provider]) prov.value = c.provider; if(c.model) mdl.value = c.model; }catch(e){}
+  function sync(){
+    const p = PROVIDERS[prov.value] || PROVIDERS.anthropic;
+    if(!mdl.value || DEFAULTS.includes(mdl.value)) mdl.value = p.models[0];
+    document.getElementById('modelids').innerHTML = p.models.map(m=>`<option value="${m}">`).join('');
+    const isOR = prov.value === 'openrouter';
+    document.getElementById('orsignin').hidden = !isOR;
+    document.getElementById('apikey').placeholder = isOR ? 'Sign in, or paste an OpenRouter key' : 'Your API key';
+    document.getElementById('modelhelp').innerHTML = isOR
+      ? `Sign in with your OpenRouter account instead of pasting a key: OpenRouter creates a key on your own credits `
+        + `(you can set a spending limit and expiry when approving). One sign-in covers Claude, GPT, Gemini and other `
+        + `models; pick one from the <a href="${p.docs}" target="_blank" rel="noopener">model list</a>. `
+        + `The key stays in this page only and is never stored.`
+      : `Pick a suggested model ID or paste any ID from the <a href="${p.docs}" target="_blank" rel="noopener">model list</a>. `
+        + `<a href="${p.keys}" target="_blank" rel="noopener">Get an API key</a>. `
+        + `Your API key is sent only with this request to generate the review; it is never stored.`;
+  }
+  const save = ()=>{ try{ localStorage.setItem(MS, JSON.stringify({provider:prov.value, model:mdl.value})); }catch(e){} };
+  prov.addEventListener('change', ()=>{ sync(); save(); });
   mdl.addEventListener('change', save);
+  sync();
 })();
 
+// ----- OpenRouter sign-in (OAuth PKCE) in a popup, so the page keeps its review.
+// The verifier and the resulting key live in memory only (never in storage).
+let orPending = null;  // {verifier, state}
+function b64url(bytes){
+  let s = ''; bytes.forEach(b=>{ s += String.fromCharCode(b); });
+  return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+async function openRouterSignIn(){
+  if(!(window.crypto && crypto.subtle)){ toast('Sign-in needs https or localhost'); return; }
+  const verifier = b64url(crypto.getRandomValues(new Uint8Array(32)));
+  const challenge = b64url(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier))));
+  const state = b64url(crypto.getRandomValues(new Uint8Array(16)));
+  orPending = {verifier, state};
+  const q = new URLSearchParams({callback_url: location.origin + '/openrouter/callback',
+    code_challenge: challenge, code_challenge_method: 'S256', state,
+    key_label: 'Literature Reviewer', expiration: '30-days'});
+  const w = window.open('https://openrouter.ai/auth?' + q, 'openrouter-auth', 'width=520,height=720');
+  if(!w) toast('Allow pop-ups for this site to sign in with OpenRouter');
+  else setStatus('Waiting for OpenRouter sign-in…');
+}
+window.addEventListener('message', async ev=>{
+  if(ev.origin !== location.origin || !ev.data || ev.data.type !== 'openrouter-code') return;
+  const pending = orPending; orPending = null;
+  if(!pending || ev.data.state !== pending.state || !ev.data.code){ setStatus('OpenRouter sign-in was cancelled.'); return; }
+  try{
+    const res = await fetch('/openrouter/exchange', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({code: ev.data.code, code_verifier: pending.verifier})});
+    const out = await res.json();
+    if(!res.ok) throw new Error(out.detail || ('HTTP '+res.status));
+    document.getElementById('apikey').value = out.key;
+    setStatus('Signed in with OpenRouter. The key is kept in this page only.');
+  }catch(err){
+    setStatus('OpenRouter sign-in failed: ' + (err instanceof TypeError ? 'needs the live server' : err.message));
+  }
+});
+document.getElementById('orsignin').addEventListener('click', openRouterSignIn);
+
+// ----- Paperpile: add reviewed papers to the user's library -----
+// Papers added from this page are remembered per browser (DOI -> reference id)
+// so only those can be removed again; anything else is left to the Paperpile app.
+const PP_ADDED_KEY = 'litreview-pp-added';
+let PP_ADDED = {};
+try{ PP_ADDED = JSON.parse(localStorage.getItem(PP_ADDED_KEY) || '{}') || {}; }catch(e){ PP_ADDED = {}; }
+function savePPAdded(){ try{ localStorage.setItem(PP_ADDED_KEY, JSON.stringify(PP_ADDED)); }catch(e){} }
+function markAddedFromSite(){
+  DATA.forEach(p=>{ const id = p.doi && PP_ADDED[p.doi.toLowerCase()];
+    if(id){ p.pp_ref = id; p.in_library = true; } });
+}
+const PP_ALREADY = 'This paper was already in your library; you can exclude it from your library in the Paperpile app.';
+function ppButton(p){
+  if(p.in_library && p.pp_ref)
+    return `<button class="btn ppadd pp-mine" data-ppremove="${p.rank}" title="Added from this page. Click to remove it from your Paperpile (moved to Paperpile's trash).">&#10003; In your Paperpile &middot; Remove</button>`;
+  if(p.in_library)
+    return `<button class="btn ppadd pp-had" data-ppinfo="${p.rank}" title="${PP_ALREADY}">&#10003; In your Paperpile</button>`;
+  return `<button class="btn ppadd${ppKey()?'':' nokey'}" data-ppadd="${p.rank}" title="${ppKey()?'Add this paper to your Paperpile library':'Needs your Paperpile API key (Paperpile panel above)'}">&#65291; Add to Paperpile</button>`;
+}
+async function removeFromPaperpile(p){
+  const key = ppKey();
+  if(!key){ toast('Enter your Paperpile API key in the Paperpile panel to remove papers'); return; }
+  try{
+    const res = await fetch('/paperpile/remove', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({paperpileKey:key, refs:[{id:p.pp_ref, doi:p.doi, title:p.title}]})});
+    const out = await res.json();
+    if(!res.ok) throw new Error(out.detail || ('HTTP '+res.status));
+    const r = (out.results||[])[0] || {};
+    if(r.status === 'removed' || r.status === 'not found'){
+      delete PP_ADDED[(p.doi||'').toLowerCase()]; savePPAdded();
+      delete p.pp_ref; p.in_library = false; render();
+      toast(r.status === 'removed' ? "Removed from your Paperpile (in Paperpile's trash)" : 'Already gone from your Paperpile');
+    }
+  }catch(err){
+    toast(err instanceof TypeError ? 'Removing needs the live server' : 'Paperpile: ' + err.message);
+  }
+}
+function ppKey(){ const el = document.getElementById('ppkey'); return el ? el.value.trim() : ''; }
+function noteMarkdown(p){
+  const a = APPROACH[p.rank] || {};
+  const lines = [`**Literature review note** (${p.venue}, ${p.date})`, '',
+    `**Relevance:** ${p.relevance}`, `**Aim:** ${aimOf(p)}`];
+  if(noveltyText(a)) lines.push(`**${noveltyText(a).replace(': ', ':** ')}`);
+  if(a.question) lines.push(`**Key question:** ${a.question}`);
+  if(a.data) lines.push(`**Data:** ${a.data}`);
+  if(a.model) lines.push(`**Model:** ${a.model}`);
+  if(a.method) lines.push(`**Methodological novelty:** ${a.method}`);
+  const res = (p.results||[]).filter(x=>x && String(x).trim());
+  if(res.length) lines.push('', '**Results:**', ...res.map(r=>`- ${r}`));
+  if(p.limitation) lines.push('', `**Limitation:** ${p.limitation}`);
+  if(p.comments) lines.push(`**Comments:** ${p.comments}`);
+  return lines.join('\n');
+}
+async function addToPaperpile(papers){
+  const key = ppKey();
+  if(!key){ toast('Enter your Paperpile API key first'); return; }
+  const withNotes = document.getElementById('ppnotes').checked;
+  try{
+    const res = await fetch('/paperpile/save', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({paperpileKey:key, papers: papers.map(p=>({title:p.title, url:p.url, doi:p.doi||'',
+        note: withNotes ? noteMarkdown(p) : ''}))})});
+    const out = await res.json();
+    if(!res.ok) throw new Error(out.detail || ('HTTP '+res.status));
+    const by = {}, ids = {}; (out.results||[]).forEach(r=>{ by[r.title] = r.status; if(r.id) ids[r.title] = r; });
+    let added = 0, had = 0, failed = 0;
+    papers.forEach(p=>{
+      const st = by[p.title];
+      if(st==='added'){ added++; p.in_library = true;
+        const r = ids[p.title];
+        if(r){ p.pp_ref = r.id; p.doi = p.doi || r.doi; PP_ADDED[r.doi.toLowerCase()] = r.id; savePPAdded(); } }
+      else if(st==='already in library'){ had++; p.in_library = true; }
+      else failed++;
+    });
+    render();
+    toast(`Paperpile: ${added} added, ${had} already there` + (failed?`, ${failed} not added`:''));
+  }catch(err){
+    toast(err instanceof TypeError ? 'Adding to Paperpile needs the live server' : 'Paperpile: ' + err.message);
+  }
+}
+document.getElementById('ppkey').addEventListener('input', ()=>{
+  document.getElementById('ppaddall').disabled = !ppKey();
+  document.getElementById('ppcheck').disabled = !ppKey();
+  document.getElementById('ppreread').disabled = !ppKey();
+  render();
+});
+// Re-read Abstract-only papers from Paperpile PDFs: only their analysis changes.
+async function rereadFromPaperpile(){
+  const ppk = ppKey(), key = (document.getElementById('apikey').value||'').trim();
+  const todo = DATA.filter(p=>p.evidence==='abstract');
+  if(!todo.length){ toast('No papers are marked Abstract only'); return; }
+  if(!key){ setStatus('Enter your model API key (step 2) to re-read papers.'); document.getElementById('apikey').focus(); return; }
+  const btn = document.getElementById('ppreread'); btn.disabled = true;
+  setStatus('');
+  gpStart(`Re-reading ${Math.min(todo.length,20)} paper(s) from your Paperpile PDFs…`,
+    'Each paper takes about 20–60 seconds. The rest of the review stays as it is.', []);
+  try{
+    const res = await fetch('/review/reanalyze', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({provider: document.getElementById('provider').value,
+        model: (document.getElementById('model').value||'').trim(), apiKey: key, paperpileKey: ppk,
+        profile: document.getElementById('profile').value.trim(),
+        papers: todo.slice(0,20).map(p=>({rank:p.rank, title:p.title, url:p.url, doi:p.doi||'',
+          insights:p.insights, results:p.results, limitation:p.limitation, resources:p.resources,
+          comments:p.comments, approach: APPROACH[p.rank]||{}}))})});
+    const out = await res.json();
+    if(!res.ok) throw new Error(out.detail || ('HTTP '+res.status));
+    (out.papers||[]).forEach(u=>{
+      const p = DATA.find(x=>x.rank===u.rank); if(!p) return;
+      ['insights','results','limitation','comments','resources','evidence'].forEach(k=>{ if(u[k]!=null) p[k]=u[k]; });
+      if(u.approach) APPROACH[u.rank] = u.approach;
+    });
+    render();
+    const missing = out.missing||[];
+    setStatus(`Re-read ${out.read||0} paper(s) in full from Paperpile.`
+      + (missing.length ? ` No saved PDF found for: ${missing.join('; ')}.` : ''));
+  }catch(err){
+    setStatus('Could not re-read: ' + (err instanceof TypeError ? 'needs the live server' : err.message));
+  }finally{ btn.disabled = !ppKey(); gpStop(); }
+}
+document.getElementById('ppreread').addEventListener('click', rereadFromPaperpile);
+// Mark papers already in the library on the current page (no regeneration).
+async function checkPaperpile(){
+  const key = ppKey(); if(!key || !DATA.length) return;
+  const btn = document.getElementById('ppcheck'); btn.disabled = true;
+  try{
+    const res = await fetch('/paperpile/check', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({paperpileKey:key, papers: DATA.slice(0,100).map(p=>({title:p.title, url:p.url, doi:p.doi||''}))})});
+    const out = await res.json();
+    if(!res.ok) throw new Error(out.detail || ('HTTP '+res.status));
+    const by = {}; (out.results||[]).forEach(r=>{ by[r.title] = r.in_library; });
+    DATA.forEach(p=>{
+      if(by[p.title]) p.in_library = true;
+      else if(p.title in by && p.pp_ref){  // removed in the Paperpile app since
+        delete PP_ADDED[(p.doi||'').toLowerCase()]; savePPAdded(); delete p.pp_ref; p.in_library = false;
+      }
+    });
+    render();
+    const n = DATA.filter(p=>p.in_library).length;
+    toast(`${n} of ${DATA.length} papers already in your Paperpile`);
+  }catch(err){
+    toast(err instanceof TypeError ? 'Checking Paperpile needs the live server' : 'Paperpile: ' + err.message);
+  }finally{ btn.disabled = !ppKey(); }
+}
+document.getElementById('ppcheck').addEventListener('click', checkPaperpile);
+document.getElementById('ppaddall').addEventListener('click', ()=>{
+  const rows = currentView().filter(p=>!p.in_library);
+  if(rows.length) addToPaperpile(rows.slice(0, 50)); else toast('All shown papers are already in your Paperpile');
+});
+document.getElementById('list').addEventListener('click', e=>{
+  const info = e.target.closest('[data-ppinfo]');
+  if(info){ toast(PP_ALREADY, 5000); return; }
+  const rm = e.target.closest('[data-ppremove]');
+  if(rm){
+    const p = DATA.find(x=>String(x.rank)===rm.dataset.ppremove); if(!p) return;
+    if(rm.dataset.armed !== '1'){  // two clicks: the first one asks
+      rm.dataset.armed = '1'; rm.textContent = 'Click again to remove from Paperpile';
+      setTimeout(()=>{ if(rm.isConnected && rm.dataset.armed === '1'){ rm.dataset.armed = ''; rm.innerHTML = '&#10003; In your Paperpile &middot; Remove'; } }, 4000);
+      return;
+    }
+    removeFromPaperpile(p); return;
+  }
+  const b = e.target.closest('[data-ppadd]'); if(!b) return;
+  if(!ppKey()){
+    toast('Enter your Paperpile API key in the Paperpile panel to add papers');
+    const det = document.getElementById('interests'); det.open = true;
+    const k = document.getElementById('ppkey');
+    k.scrollIntoView({behavior:'smooth', block:'center'}); k.focus({preventScroll:true});
+    return;
+  }
+  const p = DATA.find(x=>String(x.rank)===b.dataset.ppadd);
+  if(p) addToPaperpile([p]);
+});
+
+// Sidebar: compact (truncated titles, the default) or unfolded (full titles,
+// wider). The choice is remembered per browser.
+(function(){
+  const side = document.querySelector('.sidebar'), btn = document.getElementById('sidetoggle');
+  if(!side || !btn) return;
+  const KEY = 'litreview-sidebar-full';
+  function set(full){
+    side.classList.toggle('full', full);
+    btn.setAttribute('aria-pressed', String(full));
+    btn.innerHTML = full ? '&#8596; Compact' : '&#8596; Full titles';
+    btn.title = full ? 'Show compact titles' : 'Show full titles';
+  }
+  let full = false; try{ full = localStorage.getItem(KEY) === '1'; }catch(e){}
+  set(full);
+  btn.addEventListener('click', ()=>{
+    full = !full; set(full);
+    try{ localStorage.setItem(KEY, full ? '1' : '0'); }catch(e){}
+  });
+})();
+
+markAddedFromSite();
 renderInputs();
 render();
 </script>
