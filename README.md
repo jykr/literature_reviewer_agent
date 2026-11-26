@@ -55,9 +55,15 @@ uv run uvicorn app.fast_api_app:app --host 0.0.0.0 --port 8080
 
 On Cloud Run the credentials come from the service account automatically. `agents-cli deploy` (from the [Agents CLI](https://github.com/google/agents-cli): `uv tool install google-agents-cli`) builds the same container and ships it to **Google Cloud Run**. Infrastructure is Terraform under [`deployment/terraform/`](deployment/terraform/). See [`paper-review-SPEC.md`](paper-review-SPEC.md) for the full specification of the generated review app.
 
+### Agent workflow
+
+![1783389818754](image/README/1783389818754.png)
+
+Generated with `agents-cli playground`. `root-agent` sequentially runs `scope_agent`, `research_fanout`, and `rank_agent`.
+
 ## LangChain variant (`lc_app/`)
 
-The same pipeline and output, built on **LangGraph** instead of ADK, with paper search served by a local, keyless **MCP server** that pools five sources:
+The same pipeline and output, built on LangGraph instead of ADK, with paper search served by a local MCP server that pools five sources:
 
 | Source | What it adds |
 |---|---|
@@ -84,24 +90,19 @@ uv run --extra langchain review-lc --cv https://example.edu/~me --topics "a; b" 
 - **Integrity in code:** a researcher's or ranker's paper is kept only if an MCP tool actually returned it during the run, and its URL/DOI/citation count are copied from the tool output.
 - **Use the MCP server elsewhere:** `claude mcp add paper-sources -- uv run --directory "$PWD" --extra langchain paper-sources-mcp`. Optional env: `OPENALEX_API_KEY` (recommended: keyless OpenAlex requests share a ~100-search/day per-IP budget), `NCBI_API_KEY`.
 
+### Agent workflow
+
+![langgraph](image/README/review-lc-graph.png)
+
+Generated with `graph.get_graph().draw_mermaid_png()`. 
+- `scope`: Determine the scope of the search
+- `manual`: Include manually added papers by user
+- `research`: Search for abstract from the databases
+- `rank`: Rank the papers
+- `deepen`: Fetch full text and analyze
+- `render`: Render the report
+
 ## Model-agnostic by design
 
 Model choice is a **config knob** (`REVIEW_MODEL`), never chat input. A bare Gemini id runs ADK-native; a LiteLLM `provider/model` id (e.g. `anthropic/claude-sonnet-5`, `openai/gpt-4o`) routes through LiteLLM. The hosted BYO-key server supports Gemini, Anthropic, and OpenAI behind one `call_llm`, with loose/repairing JSON parsing so a truncated or fenced response still yields a valid review. Because search runs on keyless tools rather than provider-specific grounding, swapping models changes nothing downstream.
 
-## Agent workflow
-
-![1783389818754](image/README/1783389818754.png)
-
-Generated with `agents-cli playground`. `root-agent` sequentially runs `scope_agent`, `research_fanout`, and `rank_agent`.
-
-## Contributing
-
-Contributions are welcome — bug reports, features, documentation, and new-domain
-profiles alike.
-
-- **Issues** — report bugs or request features via [GitHub Issues](https://github.com/jykr/literature_reviewer_agent/issues). Include repro steps: inputs, model, and expected vs. actual behavior.
-- **Pull requests** — fork, branch, and open a PR. Keep changes focused, run `uv run pytest tests/unit tests/integration` before submitting, and explain the rationale alongside the change.
-- **Search sources** — the app works for any field out of the box; adding or tuning scholarly search adapters ([app/search_tools.py](app/search_tools.py)) to improve coverage in a given field is among the most useful contributions.
-- **Ideas & feedback** — open a [Discussion](https://github.com/jykr/literature_reviewer_agent/discussions) or an issue to propose a direction before implementing.
-
-By contributing, you agree your work is licensed under the same terms as this project.
