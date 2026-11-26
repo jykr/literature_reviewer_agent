@@ -45,16 +45,35 @@ from pydantic import BaseModel, Field
 from app.analysis import RANK_INSTRUCTION
 from app.byo_review import SCOPE_SYS
 from app.render import build_html, categories_from_scope
-from app.schemas import Approach, Paper, ReviewQueue, Scope
+from app.schemas import (  # noqa: F401 (re-exported)
+    LabeledPaper,
+    LabeledQueue,
+    ReviewQueue,
+    Scope,
+)
 from app.security import _url_is_safe
 from lc_app import cache
+from lc_app.core import (  # shared with the ADK app
+    CREDIBILITY_RULES,
+    DEEPEN_PROMPT,
+    MANUAL_RANK_RULES,
+    RESEARCH_PROMPT,
+    WRITING_STYLE,
+    DeepAnalysis,
+    _apply_tool_truth,
+    _fulltext_ids,
+    _json_payload,
+    apply_deep,
+    finalize_ranked,
+    reference_identifier,
+    verify_candidates,
+)
+from lc_app.core import paper_dois as _core_paper_dois
+from lc_app.core import paper_key as _paper_key
 from lc_app.focus import focus_block, review_focus
 from lc_app.models import build_model, model_id
 from lc_app.paper_sources import (
-    _ARXIV_ID,
     normalize_doi,
-    normalize_identifier,
-    title_key,
 )
 
 logger = logging.getLogger(__name__)
@@ -79,6 +98,8 @@ class ReviewState(TypedDict, total=False):
     manual_ids: list[str]  # user-supplied DOIs / PMIDs / arXiv ids / URLs
     manual_origin: dict[str, str]  # id -> origin label, e.g. "Paperpile: to read"
     skip_research: bool  # review only the added papers (no literature search)
+    add_to_previous: bool  # server input: reuse the last review (read by prepare)
+    profile: str  # researcher profile to use verbatim instead of the model's
     manual: Annotated[list[dict], operator.add]  # analyzed manual papers
     manual_failed: Annotated[list[str], operator.add]
     refresh: bool  # ignore cached manual-paper analyses
@@ -94,20 +115,6 @@ class ManualTask(TypedDict):
     profile: str
     refresh: bool
     origin: str  # "" = added by hand; else e.g. "Paperpile: to read"
-
-
-class LabeledPaper(Paper):
-    """Render-time Paper with the 'manually added' label (not ranker output,
-    so the ranker's structured-output schema stays unchanged)."""
-
-    manual: bool = False
-    evidence: str = ""  # "fulltext" | "abstract" (set by the deepen stage)
-    in_library: bool = False  # already in the user's Paperpile library
-    origin: str = ""  # where an added paper came from, e.g. "Paperpile: to read"
-
-
-class LabeledQueue(ReviewQueue):
-    papers: list[LabeledPaper]
 
 
 class ResearchTask(TypedDict):
@@ -198,7 +205,10 @@ async def scope_node(state: ReviewState) -> dict:
     logger.info(
         "scope: %d clusters: %s", len(scope.clusters), [c.name for c in scope.clusters]
     )
-    return {"scope": scope.model_dump()}
+    scope = scope.model_dump()
+    if state.get("profile"):  # the user's own wording, verbatim
+        scope["profile"] = state["profile"]
+    return {"scope": scope}
 
 
 def fan_out(state: ReviewState):
@@ -241,65 +251,6 @@ def no_scope_node(state: ReviewState) -> dict:
 # Research
 # ---------------------------------------------------------------------------
 
-RESEARCH_PROMPT = """\
-You research recent papers for ONE subfield cluster of a literature review
-tailored to one researcher.
-
-Researcher profile: {profile}
-Cluster: {name}
-Keywords: {keywords}
-
-Find 4-6 REAL papers matching this cluster, published on or after {from_date}.
-
-Tools (all keyless, pooled from OpenAlex, Europe PMC, PubMed, arXiv, bioRxiv/medRxiv):
-- `search_papers` — START HERE. Searches every source at once and dedupes.
-  Issue 2-4 focused queries, each a short keyword phrase combining different
-  cluster keywords. Always pass from_date="{from_date}".
-- `search_pubmed`, `search_biorxiv`, `search_arxiv`, `search_openalex`,
-  `search_europepmc` — dig into one source when the pooled results are thin.
-- `get_paper_details` — full abstract for a DOI/PMID/arXiv id, when the
-  search abstract is too short to describe the method and evaluation.
-
-Prefer papers with substantive methods or results over reviews/editorials.
-
-Credibility: weigh author credibility most: among comparable papers prefer
-higher senior_author_h_index, then first_author_h_index, cited_by_count and
-fwci. Venue is a secondary tie-breaker: when a preprint has a published
-version (a merged record with a journal/conference venue, or `published_doi`
-from `get_paper_details`), use the published one, and between otherwise
-comparable papers prefer the peer-reviewed one. Preprints from established
-groups are fine to include.
-
-Integrity rule: include ONLY papers the tools returned. Copy `title`, `url`
-and `doi` exactly from the tool output (venue status, citations and h-index
-are attached automatically from the tool record). Describe
-algo/data/model/evaluation from the abstract only; write "not stated in
-abstract" rather than guessing.
-{focus}"""
-
-
-CREDIBILITY_RULES = """
-
-Credibility weighting (applies within every coverage level). Author
-credibility is the PRIMARY signal; venue is SECONDARY (weigh authors roughly
-twice as much as venue):
-- Authors (primary): judge from evidence: `senior_author_h_index` first, then
-  `first_author_h_index`, `institution`, `cited_by_count` and `fwci`. A paper
-  from a clearly more established group (e.g. a much higher senior-author
-  h-index) ranks above one from a less established group even when the latter
-  has the better venue. Do not infer credibility from author or institution
-  names alone; when the fields are missing, treat credibility as unknown
-  rather than low.
-- Venue (secondary): at comparable relevance AND comparable author
-  credibility, a peer-reviewed journal or conference paper (`is_preprint`
-  false, `venue_type` journal/conference) ranks above a preprint (arXiv,
-  bioRxiv, medRxiv). Venue alone never outweighs a clear gap in author
-  credibility. An "accepted at" `venue_note` is self-reported: between a
-  preprint and a published paper. Workshops rank below main conference and
-  journal papers.
-- For every preprint, start `comments` with "Preprint (not peer-reviewed)."
-"""
-
 
 def _content_records(content: Any) -> list[dict]:
     """Paper records in one MCP tool result (str or list of content blocks)."""
@@ -329,54 +280,6 @@ def _tool_records(messages: list) -> list[dict]:
 
 # Copied from the tool record over whatever the model wrote: ids, metrics and
 # venue status, so a model can't mangle a link or upgrade a preprint to a journal.
-_TOOL_TRUTH_FIELDS = (
-    "title",
-    "url",
-    "doi",
-    "cited_by_count",
-    "fwci",
-    "venue",
-    "venue_type",
-    "venue_note",
-    "is_preprint",
-    "first_author_h_index",
-    "senior_author_h_index",
-)
-
-
-def verify_candidates(
-    papers: list[dict], records: list[dict]
-) -> tuple[list[dict], int]:
-    """Keep only papers matching a tool record (by DOI or title); copy its ids.
-
-    Returns (kept, n_dropped). The tool record is the source of truth for
-    url/doi/citation fields, so a model-mangled link can't reach the review.
-    """
-    by_doi = {normalize_doi(r.get("doi")): r for r in records if r.get("doi")}
-    by_title = {title_key(r.get("title", "")): r for r in records if r.get("title")}
-    by_url = {r["url"].rstrip("/"): r for r in records if r.get("url")}
-    kept = []
-    for p in papers:
-        rec = (
-            (by_doi.get(normalize_doi(p.get("doi"))) if p.get("doi") else None)
-            or by_title.get(title_key(p.get("title", "")))
-            or by_url.get((p.get("url") or "").rstrip("/"))
-        )
-        if rec is None:
-            continue
-        kept.append(_apply_tool_truth(p, rec))
-    return kept, len(papers) - len(kept)
-
-
-def _apply_tool_truth(paper: dict, rec: dict, extra: tuple[str, ...] = ()) -> dict:
-    p = dict(paper)
-    for f in _TOOL_TRUTH_FIELDS + extra:
-        if rec.get(f) not in (None, ""):
-            p[f] = rec[f]
-    p["sources"] = rec.get("sources", [])
-    return p
-
-
 # ---------------------------------------------------------------------------
 # Manually added papers
 # ---------------------------------------------------------------------------
@@ -411,7 +314,9 @@ def make_manual_node(tools: list[BaseTool]):
 
     async def _analyze_manual(task: ManualTask) -> dict:
         ident = task["identifier"]
-        if not task.get("refresh") and (hit := cache.load_manual(ident)):
+        if not task.get("refresh") and (
+            hit := await asyncio.to_thread(cache.load_manual, ident)
+        ):
             logger.info("manual: %s (cached analysis)", ident)
             return {"manual": [hit]}
         try:
@@ -435,7 +340,7 @@ def make_manual_node(tools: list[BaseTool]):
             analysis.model_dump(), rec, extra=("authors", "institution", "date")
         )
         paper.update(manual=True, identifier=ident)
-        cache.save_manual(ident, paper)
+        await asyncio.to_thread(cache.save_manual, ident, paper)
         logger.info("manual: analyzed %s: %s", ident, paper["title"][:70])
         return {"manual": [paper]}
 
@@ -501,7 +406,9 @@ async def rank_node(state: ReviewState) -> dict:
         and not state.get("cached")
         and not state.get("skip_research")
     ):
-        cache.save_research(
+        # File I/O off the event loop (langgraph dev rejects blocking calls).
+        await asyncio.to_thread(
+            cache.save_research,
             state["cache_key"],
             state.get("request", ""),
             scope,
@@ -511,10 +418,8 @@ async def rank_node(state: ReviewState) -> dict:
             model=model_id(),
         )
     if state.get("cache_key") and not state.get("skip_research"):
-        cache.save_last(state["cache_key"])
+        await asyncio.to_thread(cache.save_last, state["cache_key"])
     manual = list({_paper_key(m): m for m in state.get("manual", [])}.values())
-    manual_keys = {_paper_key(m) for m in manual}
-    manual_origin = {_paper_key(m): m.get("origin", "") for m in manual}
     by_cluster: dict[int, list[dict]] = {}
     found_in: dict[
         str, set[int]
@@ -555,24 +460,13 @@ async def rank_node(state: ReviewState) -> dict:
         logger.info(
             "rank: %d added papers ranked in %d batches", len(manual), len(batches)
         )
-    # Coverage (SPEC §3d): the clusters that actually surfaced a paper are a
-    # floor under the ranker's judgment, then re-rank coverage-first with the
-    # ranker's order as the tie-break.
-    n_clusters = len(scope.get("clusters", []))
-    for p in kept:
-        cats = {c for c in p.get("cats", []) if 0 <= c < n_clusters}
-        p["cats"] = sorted(cats | found_in.get(_paper_key(p), set()))
-        p.pop("sources", None)
-        p["manual"] = _paper_key(p) in manual_keys
-        p["origin"] = manual_origin.get(_paper_key(p), "")
-        if p.get("is_preprint") and not p.get("comments", "").startswith("Preprint"):
-            p["comments"] = "Preprint (not peer-reviewed). " + p.get("comments", "")
-    if len(batches) == 1:
-        kept.sort(key=lambda p: (-len(p["cats"]), p["rank"]))
-    else:  # batch-local ranks aren't comparable: scores break coverage ties
-        kept.sort(key=lambda p: (-len(p["cats"]), -(p["rel"] + p["impact"]), p["rank"]))
-    for i, p in enumerate(kept, 1):
-        p["rank"] = i
+    finalize_ranked(
+        kept,
+        len(scope.get("clusters", [])),
+        found_in,
+        manual,
+        batched=len(batches) > 1,
+    )
     logger.info(
         "rank: %d papers ranked, %d dropped as not in candidate pool",
         len(kept),
@@ -598,6 +492,7 @@ async def _rank_batch(
             },
         )
         + CREDIBILITY_RULES
+        + WRITING_STYLE
         + focus_block("rank")
         + (
             MANUAL_RANK_RULES.format(papers=json.dumps(manual, ensure_ascii=False))
@@ -644,111 +539,9 @@ async def _rank_batch(
     raise RuntimeError("Ranker did not produce a valid ReviewQueue after a retry.")
 
 
-def _paper_key(p: dict) -> str:
-    return normalize_doi(p.get("doi")) or title_key(p.get("title", ""))
-
-
-MANUAL_RANK_RULES = """
-
-Manually added papers (the researcher added these by hand; JSON):
-{papers}
-Every manually added paper MUST appear in `papers`, ranked by the same rules as
-the searched candidates. They do NOT count toward the 12-paper limit. If one
-duplicates a searched candidate, list it once.
-"""
-
-
 # ---------------------------------------------------------------------------
 # Deepen: full-text analysis of the SELECTED papers only (after ranking)
 # ---------------------------------------------------------------------------
-
-
-class DeepAnalysis(BaseModel):
-    """Fields re-derived from full text. Rank, scores, coverage, tags,
-    relevance and comments stay as the ranker set them."""
-
-    insights: str = Field(
-        description='"New metric: <...> New eval data: <...> Design & novelty: <...> '
-        'Eval limits: <...>" (four labels verbatim, in order, one string).'
-    )
-    results: list[str] = Field(
-        description="3-6 main results, one sentence each. Quantitative ones name "
-        "task, dataset/benchmark, metric, value and the baseline compared against."
-    )
-    limitation: str
-    resources: str = Field(
-        default="",
-        description="Space-separated code/data URLs from the provided links only.",
-    )
-    approach: Approach
-
-
-DEEPEN_PROMPT = """\
-You are deepening the analysis of ONE paper already selected for a literature
-review, now using excerpts of its full text (results, methods, discussion,
-tables, links). Researcher profile: {profile}
-
-Rewrite these fields from the full text:
-- insights: the four labels verbatim, in order: "New metric: ... New eval data:
-  ... Design & novelty: ... Eval limits: ..."
-- results: 3-6 main results. For a quantitative result name the task, the
-  dataset/benchmark, the metric, the value and what it is compared against.
-  Copy every number exactly as it appears in the excerpts. Never compute,
-  round or estimate a number (no derived differences).
-- limitation: the main limitation, stated by the authors or evident from the
-  evaluation.
-- resources: code/data URLs, ONLY from the provided `links` list.
-- approach: algo, nov (0 = pure engineering ... 100 = fundamentally new
-  algorithm), aim ("<goal>. Limitation addressed: <gap>."), data, model,
-  question.
-
-Base every statement on the excerpts. Where they don't cover a field, keep
-the current (abstract-based) value given below.
-"""
-
-_NUMBER = re.compile(r"(?<![\w.])[-+]?\d+(?:\.\d+)?%?")
-
-
-def grounded_results(results: list[str], source: str) -> tuple[list[str], int]:
-    """Drop result bullets quoting a decimal/percentage absent from the source.
-
-    Integers are not checked (years, counts and section numbers are too
-    common to tell apart); decimals and percentages are what matter.
-    """
-    kept = []
-    for r in results:
-        nums = [
-            n.lstrip("+-").rstrip("%")
-            for n in _NUMBER.findall(r)
-            if "." in n or n.endswith("%")
-        ]
-        if all(n in source for n in nums):
-            kept.append(r)
-    return kept, len(results) - len(kept)
-
-
-def _json_payload(content: Any) -> dict:
-    for chunk in content if isinstance(content, list) else [content]:
-        text = chunk.get("text", "") if isinstance(chunk, dict) else str(chunk)
-        try:
-            payload = json.loads(text)
-        except (json.JSONDecodeError, TypeError):
-            continue
-        if isinstance(payload, dict):
-            return payload
-    return {}
-
-
-def _fulltext_ids(p: dict) -> list[str]:
-    url = p.get("url") or ""
-    ids = [
-        p.get("identifier"),
-        url if "arxiv.org" in url else None,
-        p.get("doi"),
-        p.get("preprint_doi"),
-        url,
-    ]
-    return list(dict.fromkeys(i for i in ids if i))
 
 
 def make_deepen_node(tools: list[BaseTool]):
@@ -765,7 +558,9 @@ def make_deepen_node(tools: list[BaseTool]):
 
         async def one(p: dict) -> dict:
             key = _paper_key(p)
-            if not state.get("refresh") and (hit := cache.load_deep(key)):
+            if not state.get("refresh") and (
+                hit := await asyncio.to_thread(cache.load_deep, key)
+            ):
                 return {**p, **hit}
             ft = None
             for ident in _fulltext_ids(p):
@@ -777,7 +572,14 @@ def make_deepen_node(tools: list[BaseTool]):
                 return {**p, "evidence": "abstract"}
             current = {
                 k: p.get(k)
-                for k in ("insights", "results", "limitation", "resources", "approach")
+                for k in (
+                    "insights",
+                    "results",
+                    "limitation",
+                    "comments",
+                    "resources",
+                    "approach",
+                )
             }
             excerpt = {k: ft[k] for k in ("title", "sections", "tables", "links")}
             async with sem:
@@ -792,19 +594,9 @@ def make_deepen_node(tools: list[BaseTool]):
                         ),
                     ]
                 )
-            d = analysis.model_dump()
-            source = "\n".join(ft["sections"] + ft["tables"])
-            d["results"], dropped = grounded_results(d["results"], source)
+            hit, dropped = apply_deep(p, analysis.model_dump(), ft)
             stats["dropped_results"] += dropped
-            if not d["results"]:
-                d["results"] = p.get("results") or []
-            allowed = set(ft["links"]) | set((p.get("resources") or "").split())
-            urls = [u for u in d["resources"].split() if u in allowed]
-            d["resources"] = " ".join(
-                dict.fromkeys(urls + (p.get("resources") or "").split())
-            )
-            hit = {**d, "evidence": "fulltext", "fulltext_source": ft["source"]}
-            cache.save_deep(key, hit)
+            await asyncio.to_thread(cache.save_deep, key, hit)
             return {**p, **hit}
 
         outs = await asyncio.gather(*(one(p) for p in papers), return_exceptions=True)
@@ -869,43 +661,10 @@ def render_node(state: ReviewState) -> dict:
 # ---------------------------------------------------------------------------
 
 
-def reference_identifier(ref: dict) -> str:
-    """A Paperpile reference -> DOI, arXiv id or URL that get_paper_details takes."""
-    if doi := normalize_doi(ref.get("doi") or ""):
-        return doi
-    if arxiv := (ref.get("arxivid") or "").strip():
-        return arxiv
-    url = ref.get("url") or ""
-    url = (url[0] if isinstance(url, list) and url else url) or ""
-    # Only URLs that resolve to a paper id (arXiv/PubMed/DOI-bearing links).
-    ident = normalize_identifier(url) if url else ""
-    return "" if ident == url.strip().rstrip("/") else ident
-
-
 def paper_dois(papers: list[dict], state: ReviewState) -> dict[int, str]:
-    """rank -> DOI for queue papers, from the tool records they came from
-    (arXiv-only papers get arXiv's DataCite DOI)."""
-    from .paperpile import arxiv_doi
-
+    """rank -> DOI for queue papers, from this run's tool records."""
     pool = [p for c in state.get("candidates") or [] for p in c.get("papers", [])]
-    pool += state.get("manual") or []
-    by_title = {title_key(r.get("title", "")): r for r in pool if r.get("title")}
-    by_url = {r["url"].rstrip("/"): r for r in pool if r.get("url")}
-    out = {}
-    for p in papers:
-        rec = by_url.get((p.get("url") or "").rstrip("/")) or by_title.get(
-            title_key(p.get("title", ""))
-        )
-        doi = normalize_doi((rec or {}).get("doi") or "")
-        if not doi:
-            ident = normalize_identifier(p.get("url") or "")
-            if _ARXIV_ID.match(ident):
-                doi = arxiv_doi(ident)
-            elif ident.startswith("10."):
-                doi = normalize_doi(ident)
-        if doi:
-            out[p["rank"]] = doi
-    return out
+    return _core_paper_dois(papers, pool + (state.get("manual") or []))
 
 
 def make_library_node(library, save_label: str | None = None):
@@ -958,8 +717,16 @@ def make_library_node(library, save_label: str | None = None):
     return library_node
 
 
-def build_graph(tools: list[BaseTool], library=None, save_label: str | None = None):
-    g = StateGraph(ReviewState)
+def build_graph(
+    tools: list[BaseTool],
+    library=None,
+    save_label: str | None = None,
+    prepare=None,
+    input_schema=None,
+):
+    """``prepare`` (optional) runs first to turn a bare request into the full
+    input state, for servers whose callers send only a few fields."""
+    g = StateGraph(ReviewState, input_schema=input_schema or ReviewState)
     g.add_node("scope", scope_node)
     g.add_node("no_scope", no_scope_node)
     g.add_node("research", make_research_node(tools))
@@ -967,7 +734,12 @@ def build_graph(tools: list[BaseTool], library=None, save_label: str | None = No
     g.add_node("rank", rank_node)
     g.add_node("deepen", make_deepen_node(tools))
     g.add_node("render", render_node)
-    g.add_edge(START, "scope")
+    if prepare is not None:
+        g.add_node("prepare", prepare)
+        g.add_edge(START, "prepare")
+        g.add_edge("prepare", "scope")
+    else:
+        g.add_edge(START, "scope")
     g.add_conditional_edges(
         "scope", fan_out, ["research", "manual", "rank", "no_scope"]
     )
@@ -1031,6 +803,7 @@ async def run_review(
     include_collection: str | None = None,
     skip_research: bool = False,
     added_since: str | None = None,
+    profile: str = "",
 ) -> ReviewState:
     """Run the full pipeline. One MCP session is held for the whole run (the
     adapter's default ``get_tools()`` would spawn a server per tool call).
@@ -1118,21 +891,23 @@ async def run_review(
             save_label,
             origin,
             skip_research,
+            profile,
         )
 
 
-async def _run_review(
+def initial_state(
     request: str,
     output_path: str,
-    from_date: str | None,
-    manual_ids: list[str] | None,
-    refresh: bool,
-    add_to_previous: bool,
-    library,
-    save_label: str | None,
-    origin: dict[str, str],
-    skip_research: bool,
+    from_date: str | None = None,
+    manual_ids: list[str] | None = None,
+    refresh: bool = False,
+    add_to_previous: bool = False,
+    origin: dict[str, str] | None = None,
+    skip_research: bool = False,
+    profile: str = "",
 ) -> ReviewState:
+    """The graph's input: request + defaults, pre-filled from the research
+    cache on a hit. Shared by run_review and the ``langgraph dev`` server."""
     from_date = from_date or (dt.date.today() - dt.timedelta(days=365)).isoformat()
     if add_to_previous:
         last = cache.load_last()
@@ -1147,7 +922,10 @@ async def _run_review(
     elif skip_research:
         key = ""  # added papers only: don't cache an empty search as research
     else:
-        key = cache.research_key(request, review_focus())
+        # Profile joins the key only when set, so existing caches stay valid.
+        key = cache.research_key(
+            f"{request}\x1f{profile}" if profile else request, review_focus()
+        )
     state: ReviewState = {
         "request": request,
         "from_date": from_date,
@@ -1155,8 +933,9 @@ async def _run_review(
         "manual_ids": list(manual_ids or []),
         "refresh": refresh,
         "cache_key": key,
-        "manual_origin": origin,
+        "manual_origin": dict(origin or {}),
         "skip_research": skip_research,
+        "profile": profile,
     }
     hit = (
         None
@@ -1179,6 +958,33 @@ async def _run_review(
             from_date=hit.get("from_date") or from_date,
             cached=True,
         )
+    return state
+
+
+async def _run_review(
+    request: str,
+    output_path: str,
+    from_date: str | None,
+    manual_ids: list[str] | None,
+    refresh: bool,
+    add_to_previous: bool,
+    library,
+    save_label: str | None,
+    origin: dict[str, str],
+    skip_research: bool,
+    profile: str = "",
+) -> ReviewState:
+    state = initial_state(
+        request,
+        output_path,
+        from_date,
+        manual_ids,
+        refresh,
+        add_to_previous,
+        origin,
+        skip_research,
+        profile,
+    )
     client = MultiServerMCPClient({"papers": paper_server_connection()})
     async with client.session("papers") as session:
         tools = await load_mcp_tools(session)

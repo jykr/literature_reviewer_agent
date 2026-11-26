@@ -20,15 +20,8 @@ from dataclasses import dataclass, field
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
+from lc_app.core import extract_papers
 from lc_app.models import build_model
-from lc_app.paper_sources import normalize_identifier
-
-_URL = re.compile(r"https?://[^\s<>\"'),\]]+")
-_BARE_DOI = re.compile(r"(?<![\w/.])10\.\d{4,9}/[^\s,;<>\"')\]]+")
-_BARE_ARXIV = re.compile(
-    r"(?<![\w/.])(?:arxiv:)?\d{4}\.\d{4,5}(?:v\d+)?(?![\w.])", re.I
-)
-_PMID = re.compile(r"\bPMID:?\s*(\d{5,9})\b", re.I)
 
 
 @dataclass
@@ -36,40 +29,6 @@ class ParsedRequest:
     request: str  # topics / CV text for the scope stage ("" when add_to_previous)
     manual_ids: list[str] = field(default_factory=list)
     add_to_previous: bool = False
-
-
-def _is_paper_url(url: str) -> bool:
-    return normalize_identifier(url) != url.strip().rstrip("/")
-
-
-def _dedupe_key(ident: str) -> str:
-    return re.sub(r"v\d+$", "", ident.lower())  # arXiv versions are one paper
-
-
-def extract_papers(text: str) -> tuple[str, list[str]]:
-    """Pull paper identifiers out of ``text``; return (remaining text, ids)."""
-    found: list[str] = []
-
-    def take(m: re.Match, value: str | None = None) -> str:
-        found.append(normalize_identifier(value or m.group(0)))
-        return " "
-
-    def url_sub(m: re.Match) -> str:
-        url = m.group(0).rstrip(".")
-        return take(m, url) if _is_paper_url(url) else m.group(0)
-
-    text = _URL.sub(url_sub, text)
-    text = _PMID.sub(lambda m: take(m, m.group(1)), text)
-    text = _BARE_DOI.sub(lambda m: take(m, m.group(0).rstrip(".")), text)
-    text = _BARE_ARXIV.sub(lambda m: take(m, m.group(0).split(":")[-1]), text)
-
-    ids, seen = [], set()
-    for i in found:
-        if (k := _dedupe_key(i)) not in seen:
-            seen.add(k)
-            ids.append(i)
-    remainder = re.sub(r"[\s,;]+", " ", text).strip(" ,;:")
-    return remainder, ids
 
 
 class _Intent(BaseModel):

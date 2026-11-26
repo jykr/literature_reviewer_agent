@@ -42,15 +42,20 @@ _STAGE_GUIDANCE = {
 }
 
 
-def review_focus() -> str:
-    """The active focus text, or "" when disabled."""
-    focus = os.environ.get("LC_REVIEW_FOCUS", DEFAULT_FOCUS).strip()
+def review_focus(use_default: bool = True) -> str:
+    """The active focus text, or "" when disabled.
+
+    ``use_default=False`` (the field-general ADK app) applies a focus only when
+    ``LC_REVIEW_FOCUS`` is set explicitly.
+    """
+    focus = os.environ.get("LC_REVIEW_FOCUS", DEFAULT_FOCUS if use_default else "")
+    focus = focus.strip()
     return "" if focus.lower() == "none" else focus
 
 
-def focus_block(stage: str) -> str:
+def focus_block(stage: str, use_default: bool = True) -> str:
     """Prompt text for one stage ('scope' | 'research' | 'rank'), "" if no focus."""
-    focus = review_focus()
+    focus = review_focus(use_default)
     if not focus:
         return ""
     return f"\n\nReview focus: {focus}\n{_STAGE_GUIDANCE[stage]}\n"

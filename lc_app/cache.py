@@ -90,10 +90,23 @@ def save_manual(identifier: str, paper: dict) -> None:
     _write(cache_dir() / "manual" / f"{manual_key(identifier)}.json", paper)
 
 
+# Bump when the full-text instructions or DeepAnalysis fields change.
+# 3 comments + method novelty; 4 length limits; 5 novelty kinds; 6 comment length
+DEEP_VERSION = 6
+
+
 def load_deep(paper_key: str) -> dict | None:
-    """Cached full-text ("deepen") analysis for one paper, by DOI/title key."""
-    return _read(cache_dir() / "deep" / f"{_digest(paper_key)}.json")
+    """Cached full-text ("deepen") analysis for one paper, by DOI/title key.
+
+    Entries written under older instructions (an older ``DEEP_VERSION``) count
+    as missing, so the paper is re-read once with the current ones.
+    """
+    hit = _read(cache_dir() / "deep" / f"{_digest(paper_key)}.json")
+    return hit if hit and hit.get("v") == DEEP_VERSION else None
 
 
 def save_deep(paper_key: str, analysis: dict) -> None:
-    _write(cache_dir() / "deep" / f"{_digest(paper_key)}.json", analysis)
+    _write(
+        cache_dir() / "deep" / f"{_digest(paper_key)}.json",
+        {**analysis, "v": DEEP_VERSION},
+    )

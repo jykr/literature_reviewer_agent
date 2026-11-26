@@ -135,7 +135,9 @@ def _paper(rank, title, url, cats=()):
         rel=5,
         cats=list(cats),
         tags=Tags(app=[], method=[]),
-        approach=Approach(algo="a", nov=10, aim="a", data="d", model="m", question="q"),
+        approach=Approach(
+            algo="a", nov="Application", aim="a", data="d", model="m", question="q"
+        ),
     )
 
 
@@ -462,7 +464,9 @@ def test_fan_out_with_cache_and_manual():
 
 def test_grounded_results_drops_numbers_not_in_source():
     source = "On ClinVar the model reaches 0.91 auROC versus 0.87 for Enformer; recall 85% at 2026."
-    kept, dropped = graph.grounded_results(
+    from lc_app.core import grounded_results
+
+    kept, dropped = grounded_results(
         [
             "Variant effect (ClinVar): 0.91 auROC vs 0.87 for Enformer.",
             "Recall reaches 85% on held-out variants.",
@@ -512,8 +516,11 @@ async def test_deepen_rewrites_selected_papers_and_marks_abstract_only(
             "Speedup of 37.5% (made up).",
         ],
         limitation="L",
+        comments="The authors report agreement with experiment on two systems.",
         resources="https://github.com/example/bioemu2 https://evil.example/x",
-        approach=Approach(algo="a", nov=60, aim="x", data="d", model="m", question="q"),
+        approach=Approach(
+            algo="a", nov="Adaptation", aim="x", data="d", model="m", question="q"
+        ),
     )
     stub = _SchemaStub({"DeepAnalysis": [deep]})
     monkeypatch.setattr(graph, "build_model", lambda **kw: stub)
@@ -554,7 +561,7 @@ async def test_deepen_rewrites_selected_papers_and_marks_abstract_only(
     assert (
         bio["resources"] == "https://github.com/example/bioemu2"
     )  # link not in paper dropped
-    assert bio["approach"]["nov"] == 60
+    assert bio["approach"]["nov"] == ["Adaptation"]
     assert pay["evidence"] == "abstract" and pay["results"] == ["kept"]
 
     # Second pass: BioEmu2's analysis comes from cache (no fetch, no model call).
@@ -571,3 +578,30 @@ def test_server_env_allowlist_passes_fulltext_keys_only(monkeypatch):
     env = graph.paper_server_connection()["env"]
     assert {"UNPAYWALL_EMAIL", "LC_BIORXIV_S3", "AWS_PROFILE"} <= set(env)
     assert "ANTHROPIC_API_KEY" not in env
+
+
+def test_novelty_is_a_set_of_contribution_kinds():
+    from app.schemas import Approach, novelty_kinds
+
+    assert novelty_kinds(["algorithm", "Application/resource"]) == [
+        "Application",
+        "Algorithm",
+    ]
+    assert novelty_kinds("resource") == ["Application"]
+    assert novelty_kinds(["x", ""]) == []
+    a = Approach(
+        algo="x",
+        nov=["adaptation", "Application"],
+        aim="",
+        question="",
+        data="",
+        model="",
+        method="DNA embeddings projected into the LLM token space",
+    )
+    assert a.nov == ["Application", "Adaptation"]
+    # Older cached reviews: one score, one label, or the three-rating format.
+    base = {"algo": "x", "aim": "", "data": "", "model": "", "question": ""}
+    assert Approach.model_validate({**base, "nov": 80}).nov == ["Algorithm"]
+    assert Approach.model_validate({**base, "nov": "New method"}).nov == ["Algorithm"]
+    assert Approach.model_validate({**base, "nov_ml": "Medium"}).nov == ["Adaptation"]
+    assert Approach.model_validate(base).nov == []
