@@ -219,7 +219,7 @@ Output ONLY JSON: {"papers":[{
  "insights":str,"results":[str],"limitation":str,"resources":str,"comments":str,"relevance":str,
  "impact":int(1-10),"rel":int(1-10),"cats":[int],
  "tags":{"app":[str],"method":[str]},
- "approach":{"algo":str,"nov":int(0-100),"aim":str,"data":str,"model":str,"question":str}}]}
+ "approach":{"algo":str,"nov":["Application"|"Adaptation"|"Algorithm", ...],"aim":str,"question":str,"data":str,"model":str,"method":str}}]}
 Only use papers actually present in the candidates; do NOT invent titles/authors/URLs."""
 
 
@@ -308,10 +308,10 @@ def run_pipeline(
     def obj(p):
         d = dict(p)
         d.setdefault("tags", {"app": [], "method": []})
-        d.setdefault("approach", {"algo": "", "nov": 0, "aim": "", "data": "", "model": "", "question": ""})
+        d.setdefault("approach", {"algo": "", "nov": [], "aim": "", "data": "", "model": "", "method": "", "question": ""})
         d["tags"] = NS(**{"app": [], "method": [], **d["tags"]})
         d["approach"] = NS(
-            **{"algo": "", "nov": 0, "aim": "", "data": "", "model": "", "question": "", **d["approach"]}
+            **{"algo": "", "nov": [], "aim": "", "data": "", "model": "", "method": "", "question": "", **d["approach"]}
         )
         d.setdefault("cats", [])
         d.setdefault("results", [])

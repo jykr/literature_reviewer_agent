@@ -13,18 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Rank + structure agent (SPEC §2.3-2.4): merge, deepen, rank, emit ReviewQueue.
+"""Ranker instruction (SPEC §2.3-2.4): merge, deepen, rank, emit ReviewQueue.
 
-Uses ``output_schema=ReviewQueue`` to force clean, validated JSON. That DISABLES
-tools/delegation (ADK rule) — fine, because all web research already happened in
-the fan-out. Its ``after_agent_callback`` renders the HTML app.
+The ranking step itself is ``app.stages.RankAgent`` (structured output, batched
+for long lists of added papers); the LangChain variant formats the same text.
 """
 
-from google.adk.agents import Agent
-
-from app.models import build_model
-from app.render import assemble_html_callback
-from app.schemas import ReviewQueue
 
 RANK_INSTRUCTION = """\
 You are the editor of a paper review tailored to one
@@ -45,11 +39,18 @@ Do the following:
 1. MERGE all candidate papers into one list and DEDUPLICATE (same title or URL =
    same paper). Drop anything that looks unverifiable or fabricated.
 2. Deepen each paper into the three axes (SPEC §2.3):
-   - Main approach: name the core algorithm; judge whether it is off-the-shelf or
-     novel and set `nov` (0 = pure engineering/integration ... 100 = fundamentally
-     new algorithm; middle = modified existing architecture).
+   - Main approach: name the core algorithm and set `nov` to the list of
+     every kind of contribution that applies (one or more): "Application"
+     (existing methods applied to new data or a new problem, or a
+     dataset/benchmark/tool resource), "Adaptation" (existing components
+     modified or combined, e.g. a pretrained DNA encoder connected to an LLM
+     through a learned projection into its token embedding space, however
+     large the effort) and "Algorithm" (a fundamentally new learning
+     algorithm, objective or architectural principle). Judge from what was
+     actually done, not from the paper's own claims of novelty; no kind is
+     better than another.
    - Evaluation: new metric? new eval data? design novelty? eval limitations?
-   - Results: the paper's MAIN results as a list of short bullet strings in
+   - Results: the paper's 2-3 MAIN results as short bullet strings in
      `results`. For any QUANTITATIVE result, name the task, the data/benchmark,
      the metric, and the value (e.g. "Contact prediction (CASP15): 0.72 long-range
      precision, +0.05 over the baseline"). Keep each bullet to one sentence.
@@ -69,21 +70,15 @@ this order, each followed by a short phrase, all in one string:
 "New metric: <...> New eval data: <...> Design & novelty: <...> Eval limits: <...>"
 
 Fill `tags.app` with application/problem tags and `tags.method` with the
-method/technique-class tags. Fill `approach` with {{algo, nov, aim, data, model,
-question}} where `aim` is "<goal>. Limitation addressed: <gap>." Put code/data URLs
-(space-separated, bare) in `resources`. Write `relevance` as why it matters to
-THIS researcher, and `comments` as your significance note.
+method/technique-class tags. Fill `approach` with {{algo, nov, aim, question, data, model, method}} where
+`aim` is "<goal>. Limitation addressed: <gap>.", `model` is the base model or
+architecture the work builds on, and `method` is the methodological novelty: the
+specific technical mechanism the paper adds or changes relative to prior work,
+stated concretely (what is combined, projected, trained or optimized, and how). Put code/data URLs
+(space-separated, bare) in `resources`. Write `relevance` as which of the
+profile's interests the paper bears on and how, and `comments` as an objective
+appraisal of the contribution and the strength of its evidence.
 
 Integrity rule (SPEC §2.5): prefer characterizing HOW a paper evaluated over
 quoting exact numbers; hedge anything you cannot confirm.
 """
-
-rank_agent = Agent(
-    name="rank_agent",
-    model=build_model(),
-    description="Merges, deepens, and ranks candidate papers into the final ReviewQueue.",
-    instruction=RANK_INSTRUCTION,
-    output_schema=ReviewQueue,
-    output_key="review_queue",
-    after_agent_callback=assemble_html_callback,
-)

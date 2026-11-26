@@ -27,7 +27,13 @@ class FakeSession:
         if name == "get_collections_from_library":
             data = {"data": self.collections}
         elif name == "get_references_from_library" and "dois" in args:
-            data = {"data": [self.refs[d] for d in args["dois"] if d in self.refs]}
+            data = {
+                "data": [
+                    self.refs[d]
+                    for d in args["dois"]
+                    if d in self.refs and not self.refs[d].get("trashed")
+                ]
+            }
         elif name == "get_references_from_library":
             data = {"data": list(self.refs.values())[: args.get("limit", 100)]}
         elif name == "update_collections":
@@ -47,7 +53,10 @@ class FakeSession:
         elif name == "update_references":
             by_id = {r["id"]: r for r in self.refs.values()}
             for u in args["updates"]:
-                by_id[u["id"]].setdefault("labels", []).extend(u["add_labels"])
+                if "add_labels" in u:
+                    by_id[u["id"]].setdefault("labels", []).extend(u["add_labels"])
+                if u.get("trashed"):
+                    by_id[u["id"]]["trashed"] = True
             data = {"ok": True}
         else:
             raise AssertionError(name)
@@ -231,3 +240,18 @@ def test_since_date_spans_and_dates():
     assert since_date("2026-05-01", today) == "2026-05-01"
     with pytest.raises(SystemExit):
         since_date("half a year", today)
+
+
+@pytest.mark.asyncio
+async def test_studio_input_keys_reach_prepare(monkeypatch):
+    """Every server input key must be a state channel, or nodes never see it."""
+    from lc_app import studio
+    from lc_app.graph import ReviewState
+
+    assert set(studio.ReviewInput.__annotations__) <= set(ReviewState.__annotations__)
+    seen = {}
+    monkeypatch.setattr(
+        studio, "initial_state", lambda *a, **k: seen.update(args=a, kw=k) or {}
+    )
+    studio.prepare_node({"request": "", "add_to_previous": True, "skip_research": True})
+    assert seen["args"][5] is True and seen["kw"]["skip_research"] is True

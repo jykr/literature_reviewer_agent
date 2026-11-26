@@ -21,102 +21,139 @@ per-slot state keys so slot k researches ``cluster_k`` (or no-ops if there are
 fewer clusters than slots). Each searcher writes to its own ``output_key`` to
 avoid parallel write races.
 
-Searchers use the scholarly FunctionTools in ``search_tools`` (OpenAlex, Europe
-PMC, arXiv) rather than Gemini's ``google_search`` grounding — so the pipeline is
-model-agnostic (works on Claude/GPT too) and returns structured, verifiable
-metadata plus citation counts for ranking.
+Searchers use the pooled scholarly tools in ``app.sources`` (OpenAlex, Europe
+PMC, PubMed, arXiv, bioRxiv/medRxiv), shared with the LangChain variant, so
+the pipeline is model-agnostic. Their instructions come from the same
+``lc_app.core.RESEARCH_PROMPT`` (credibility weighting, review focus).
 
-The dynamic-fan-out upgrade (a custom BaseAgent that spawns exactly one searcher
-per discovered cluster) is described at the bottom of this file.
+Integrity (SPEC §2.5) is enforced in code, not just asked for: every record a
+tool returns is kept in state (``record_tool_results``), and after the
+researcher finishes, ``verify_researcher`` keeps only papers matching one of
+those records and copies ids, venue status, citations and h-index from it.
 """
 
 from __future__ import annotations
 
+import datetime as dt
 import json
+import logging
 
 from google.adk.agents import Agent, ParallelAgent
 from google.adk.agents.callback_context import CallbackContext
+from google.adk.agents.readonly_context import ReadonlyContext
 
+from app.byo_review import _json_loads_loose
 from app.models import build_model, safety_config
-from app.search_tools import SCHOLARLY_TOOLS
+from app.sources import RESEARCH_TOOLS, record_tool_results
+from lc_app.core import RESEARCH_PROMPT, verify_candidates
+from lc_app.focus import focus_block
+
+logger = logging.getLogger(__name__)
 
 N_SLOTS = 5
 
 
-def split_clusters(callback_context: CallbackContext) -> None:
-    """Populate state['cluster_0'..'cluster_{N-1}'] from state['scope']."""
-    scope = callback_context.state.get("scope")
+def _scope(state) -> dict:
+    scope = state.get("scope")
     if isinstance(scope, str):
         try:
             scope = json.loads(scope)
         except json.JSONDecodeError:
             scope = {}
-    clusters = (scope or {}).get("clusters", []) if isinstance(scope, dict) else []
+    return scope if isinstance(scope, dict) else {}
+
+
+def default_from_date() -> str:
+    return (dt.date.today() - dt.timedelta(days=365)).isoformat()
+
+
+def split_clusters(callback_context: CallbackContext) -> None:
+    """Populate state['cluster_0'..'cluster_{N-1}'] from state['scope'].
+
+    With ``skip_research`` (review only added papers) every slot is left empty.
+    """
+    state = callback_context.state
+    clusters = [] if state.get("skip_research") else _scope(state).get("clusters", [])
     for k in range(N_SLOTS):
-        callback_context.state[f"cluster_{k}"] = (
+        state[f"cluster_{k}"] = (
             json.dumps(clusters[k], ensure_ascii=False) if k < len(clusters) else ""
         )
+        state[f"tool_records_researcher_{k}"] = []
 
 
-RESEARCH_INSTRUCTION = """\
-You research recent papers for ONE subfield cluster.
-
-The cluster to research (JSON, may be empty) is:
-{cluster_%d}
-
-If the cluster is empty, output exactly `[]` and stop.
-
-Otherwise, find 4-6 REAL, verifiable papers matching this cluster's keywords,
-published from mid-2025 to now (max ~1 year old). Use the search tools:
-- `search_openalex(query, from_date, max_results)` — your PRIMARY source; broad
-  coverage plus citation metrics. Pass from_date="2025-06-01".
-- `search_europepmc(query, max_results)` — biomedical papers and preprints.
-- `search_arxiv(query, max_results)` — preprints (e.g. q-bio, cs, physics, math).
-Issue a few focused queries combining the cluster keywords; call more than one
-tool when useful. Prefer papers with a resolvable DOI or preprint URL, and carry
-`cited_by_count`/`fwci` from OpenAlex when present (used later for ranking).
-
-Integrity rule (SPEC §2.5): only include papers actually returned by the tools.
-Do NOT invent titles, authors, venues, or URLs. If unsure about a figure, omit it
-rather than guess.
-
+OUTPUT_FORMAT = """
 Output ONLY a JSON array (no prose, no code fences). Each element:
-{
-  "title": "...",
-  "authors": "First A., ..., Senior Z.",
-  "institution": "lead institution(s)",
-  "venue": "journal / conference / 'bioRxiv preprint'",
-  "date": "e.g. 'Jan 2026 (bioRxiv Jun 2025)'",
-  "url": "canonical DOI/preprint link",
-  "cited_by_count": 0,
-  "fwci": null,
-  "algo": "core method/algorithm name",
-  "data": "what data it uses (train + eval, scale)",
-  "model": "how the method works / how it was adapted",
-  "evaluation": "how it was evaluated: metrics, eval data, design novelty, limits",
-  "question": "the key question it answers",
-  "app_tags": ["Application tag", "..."],
-  "method_tags": ["Method/computational-class tag", "..."]
-}
+{"title": "...", "authors": "First A., ..., Senior Z.", "institution": "...",
+ "venue": "...", "date": "...", "url": "...", "doi": "...",
+ "algo": "core method", "data": "data used (train + eval, scale)",
+ "model": "how the method works", "evaluation": "metrics, eval data, limits",
+ "question": "key question", "app_tags": ["..."], "method_tags": ["..."]}
 """
 
 
-def create_researcher(k: int) -> Agent:
+def research_instruction(k: int):
+    """InstructionProvider for slot k (formats the shared prompt from state)."""
+
+    def provide(ctx: ReadonlyContext) -> str:
+        raw = ctx.state.get(f"cluster_{k}") or ""
+        if not raw:
+            return "There is no cluster for this slot. Output exactly `[]` and stop."
+        cluster = json.loads(raw)
+        return (
+            RESEARCH_PROMPT.format(
+                profile=_scope(ctx.state).get("profile", ""),
+                name=cluster.get("name", ""),
+                keywords=", ".join(cluster.get("keywords", [])),
+                from_date=ctx.state.get("from_date") or default_from_date(),
+                focus=focus_block("research", use_default=False),
+            )
+            + OUTPUT_FORMAT
+        )
+
+    return provide
+
+
+def verify_researcher(callback_context: CallbackContext) -> None:
+    """after_agent_callback: keep only papers some tool returned (tool truth)."""
+    state = callback_context.state
+    name = callback_context.agent_name
+    k = int(name.rsplit("_", 1)[-1])
+    raw = state.get(f"papers_{k}")
+    try:
+        found = _json_loads_loose(raw) if isinstance(raw, str) and raw.strip() else raw
+    except (json.JSONDecodeError, ValueError):
+        found = []
+    found = [p for p in (found or []) if isinstance(p, dict)]
+    papers, dropped = verify_candidates(found, state.get(f"tool_records_{name}") or [])
+    state[f"papers_{k}"] = json.dumps(papers, ensure_ascii=False)
+    if found:
+        logger.info(
+            "research[%d]: %d papers kept, %d unverified dropped", k, len(papers), dropped
+        )
+
+
+def create_researcher(k: int, model=None) -> Agent:
     """Factory for researcher slot k (call it, don't pass the reference)."""
     return Agent(
         name=f"researcher_{k}",
-        model=build_model(),
+        model=model or build_model(),
         description=f"Searches for recent papers in subfield cluster {k}.",
-        instruction=RESEARCH_INSTRUCTION % k,
-        tools=SCHOLARLY_TOOLS,
+        instruction=research_instruction(k),
+        tools=RESEARCH_TOOLS,
         output_key=f"papers_{k}",
         generate_content_config=safety_config(),
+        after_tool_callback=record_tool_results,
+        after_agent_callback=verify_researcher,
     )
 
 
-research_fanout = ParallelAgent(
-    name="research_fanout",
-    description="Runs one searcher per subfield cluster, concurrently.",
-    sub_agents=[create_researcher(k) for k in range(N_SLOTS)],
-    before_agent_callback=split_clusters,
-)
+def create_research_fanout(model=None) -> ParallelAgent:
+    return ParallelAgent(
+        name="research_fanout",
+        description="Runs one searcher per subfield cluster, concurrently.",
+        sub_agents=[create_researcher(k, model) for k in range(N_SLOTS)],
+        before_agent_callback=split_clusters,
+    )
+
+
+research_fanout = create_research_fanout()

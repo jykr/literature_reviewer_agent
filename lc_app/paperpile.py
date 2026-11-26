@@ -18,7 +18,6 @@ from __future__ import annotations
 import asyncio
 import json
 import os
-import re
 import sys
 import threading
 import webbrowser
@@ -31,6 +30,7 @@ from mcp.client.auth import OAuthClientProvider, TokenStorage
 from mcp.shared.auth import OAuthClientInformationFull, OAuthClientMetadata, OAuthToken
 
 from .cache import cache_dir
+from .core import arxiv_doi  # noqa: F401 (re-exported)
 
 SERVER_URL = os.getenv("PAPERPILE_MCP_URL", "https://mcp.paperpile.com/")
 CALLBACK_PORT = int(os.getenv("PAPERPILE_CALLBACK_PORT", "8765"))
@@ -164,12 +164,6 @@ def _norm_doi(doi: str) -> str:
     return doi
 
 
-def arxiv_doi(arxiv_id: str) -> str:
-    """arXiv's DataCite DOI, version suffix dropped: 2608.24688v2 -> 10.48550/arxiv.2608.24688."""
-    base = re.sub(r"v\d+$", "", arxiv_id.split(":")[-1])
-    return f"10.48550/arxiv.{base.lower()}"
-
-
 def profile_text(refs: list[dict], where: str) -> str:
     """Titles/venues/years of ``refs`` as an interest profile for scoping."""
     lines = []
@@ -193,14 +187,19 @@ class PaperpileLibrary:
     def __init__(self, session):
         self.session = session
 
-    async def call(self, tool: str, why: str, **args) -> dict:
+    async def call(self, tool: str, why: str, json_output: bool = True, **args) -> dict:
+        if json_output:  # tools with an output_format option
+            args["output_format"] = "JSON"
         res = await self.session.call_tool(
-            tool, {"rationale": _RATIONALE.format(why), "output_format": "JSON", **args}
+            tool, {"rationale": _RATIONALE.format(why), **args}
         )
         text = "".join(getattr(c, "text", "") for c in res.content)
         if res.isError:
             raise RuntimeError(f"Paperpile {tool} failed: {text[:300]}")
-        return json.loads(text) if text.strip() else {}
+        try:
+            return json.loads(text) if text.strip() else {}
+        except json.JSONDecodeError:
+            return {"text": text}  # tools without an output_format reply in text
 
     async def collections(self) -> list[dict]:
         data = await self.call(
@@ -275,6 +274,99 @@ class PaperpileLibrary:
         )
         return profile_text(data.get("data", []), where)
 
+    async def pdf_text(self, reference_id: str, max_bytes: int = 100_000) -> str:
+        """Text of a library reference's main PDF ("" if it has none)."""
+        try:
+            data = await self.call(
+                "get_text_content",
+                "read a saved PDF for a paper with no open full text",
+                json_output=False,
+                reference_id=reference_id,
+                max_bytes=max_bytes,
+            )
+        except (RuntimeError, ValueError):
+            return ""
+        return "\n".join(c.get("text", "") for c in data.get("content") or [])
+
+    async def save_items(
+        self, items: list[dict], label: str | None = None
+    ) -> list[dict]:
+        """Save papers one by one, each with its own note.
+
+        ``items``: [{"doi": ..., "note": optional Markdown}]. A paper already in
+        the library is left untouched (its notes are never overwritten). Returns
+        [{"doi", "status": "added" | "already in library" | "failed"}].
+        """
+        dois = [_norm_doi(i["doi"]) for i in items if i.get("doi")]
+        before = {_norm_doi(r.get("doi", "")) for r in await self.lookup(dois)}
+        label_id = await self.ensure_label(label) if label else None
+        for it in items:
+            doi = _norm_doi(it.get("doi", ""))
+            if not doi or doi in before:
+                continue
+            args: dict[str, Any] = {
+                "dois": [doi],
+                "skip_duplicates": True,
+                "find_pdfs": True,
+                "wait_for_pdf": False,
+            }
+            if it.get("note"):
+                args["note"] = it["note"]
+            if label_id:
+                args["labels"] = [label_id]
+            try:
+                await self.call(
+                    "save_to_library", "save a paper picked in a review", **args
+                )
+            except RuntimeError:
+                pass  # reported as failed below
+        after = {
+            _norm_doi(r.get("doi", "")): r.get("id") for r in await self.lookup(dois)
+        }
+        return [
+            {
+                "doi": d,
+                "status": "already in library"
+                if d in before
+                else "added"
+                if d in after
+                else "failed",
+                # The new reference's id, so the page can undo its own additions.
+                **({"id": after[d]} if d in after and d not in before else {}),
+            }
+            for d in dois
+        ]
+
+    async def trash(self, items: list[dict]) -> list[dict]:
+        """Move references to Paperpile's trash (recoverable there; never deleted).
+
+        ``items``: [{"id", "doi"}]. A reference is trashed only when the id
+        belongs to that DOI in this library, so a stray id can't hit an
+        unrelated paper. Returns [{"doi", "status": "removed" | "not found"}].
+        """
+        refs = await self.lookup([i.get("doi", "") for i in items])
+        owned = {(r.get("id"), _norm_doi(r.get("doi", ""))) for r in refs}
+        targets = [
+            i for i in items if (i.get("id"), _norm_doi(i.get("doi", ""))) in owned
+        ]
+        if targets:
+            await self.call(
+                "update_references",
+                "undo a paper the review page added to the library",
+                json_output=False,  # this tool has no output_format
+                updates=[{"id": i["id"], "trashed": True} for i in targets],
+            )
+        done = {(i["id"], _norm_doi(i.get("doi", ""))) for i in targets}
+        return [
+            {
+                "doi": _norm_doi(i.get("doi", "")),
+                "status": "removed"
+                if (i.get("id"), _norm_doi(i.get("doi", ""))) in done
+                else "not found",
+            }
+            for i in items
+        ]
+
     async def ensure_label(self, name: str) -> str:
         coll = await self.find_collection(name)
         if coll:
@@ -282,6 +374,7 @@ class PaperpileLibrary:
         data = await self.call(
             "update_collections",
             "create a label for papers picked by a literature review",
+            json_output=False,  # this tool has no output_format
             updates=[{"action": "create", "type": "label", "name": name}],
         )
         coll = await self.find_collection(name)
@@ -319,6 +412,7 @@ class PaperpileLibrary:
             await self.call(
                 "update_references",
                 "label existing library copies of papers picked by a review",
+                json_output=False,  # this tool has no output_format
                 updates=updates[i : i + 50],
             )
         saved = {_norm_doi(r.get("doi", "")) for r in refs}
