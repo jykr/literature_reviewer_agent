@@ -97,6 +97,11 @@ def build_payload(
                 "rel": p.rel,
                 "cats": cats,
                 "cover": len(cats),
+                # Optional: set by the LangChain variant for user-added papers.
+                "manual": bool(getattr(p, "manual", False)),
+                "evidence": getattr(p, "evidence", "") or "",
+                "in_library": bool(getattr(p, "in_library", False)),
+                "origin": getattr(p, "origin", "") or "",
             }
         )
         tags[str(p.rank)] = {"app": p.tags.app, "method": p.tags.method}
@@ -257,6 +262,7 @@ _TEMPLATE = r"""<!doctype html>
   --bg:#f6f7f9; --card:#fff; --ink:#1a1d21; --muted:#5b6570; --line:#e3e7ec;
   --accent:#2b6cb0; --accent-soft:#e8f0f8;
   --important:#c0392b; --further:#b7791f; --done:#2f855a;
+  --pp:#7b3fb3; --pp-soft:#f6f0fb;
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
@@ -329,6 +335,11 @@ header.top .crit{color:var(--muted);font-size:13px;max-width:70ch}
 .meta{color:var(--muted);font-size:13px}
 .badge{display:inline-block;font-size:11px;border:1px solid var(--line);border-radius:6px;
   padding:1px 6px;color:var(--muted)}
+.badge.manual{border-color:var(--accent);color:var(--accent);font-weight:700}
+.badge.library{border-style:dashed}
+.badge.origin{border-color:var(--pp);color:var(--pp);font-weight:700}
+.card.from-pp{background:var(--pp-soft)}
+.card.from-pp .hrow .chip{background:var(--pp)}
 .scores{font-size:13px;color:var(--muted);margin-top:2px}
 .tagrow{margin:10px 0 4px;display:flex;gap:6px;flex-wrap:wrap}
 .tag{cursor:pointer;font-size:11px;border-radius:20px;padding:2px 9px;border:1px solid transparent}
@@ -538,7 +549,7 @@ function resultsDD(p){
 
 function cardHTML(p){
   const st = status[p.rank];
-  const cls = st ? ' st-'+st : '';
+  const cls = (st ? ' st-'+st : '') + (p.origin ? ' from-pp' : '');
   const btn = (key,label)=>`<button class="sbtn${st===key?' on-'+key:''}" data-status="${key}" data-rank="${p.rank}">${label}</button>`;
   return `<article class="card${cls}" id="card-${p.rank}" data-rank="${p.rank}">
     <div class="hrow">
@@ -546,7 +557,7 @@ function cardHTML(p){
       <h3><a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.title)}</a></h3>
     </div>
     <div class="meta">${esc(p.authors)} &mdash; ${esc(p.institution)}</div>
-    <div class="meta"><span class="badge">${esc(p.venue)}</span> ${esc(p.date)}</div>
+    <div class="meta"><span class="badge">${esc(p.venue)}</span> ${esc(p.date)}${p.origin?` <span class="badge origin">${esc(p.origin)}</span>`:p.manual?' <span class="badge manual">Manually added</span>':''}${p.evidence==='abstract'?' <span class="badge" title="No open full text; analyzed from the abstract">Abstract only</span>':''}${p.in_library&&!p.origin?' <span class="badge library" title="Already in your Paperpile library">In your Paperpile</span>':''}</div>
     <div class="scores">Field impact ${p.impact}/10 &middot; Relevance to you ${p.rel}/10${coverBadge(p)}</div>
     <div class="tagrow">${tagChips(p)}${catChips(p)}</div>
     <div class="statusbar">
@@ -603,8 +614,8 @@ function render(){
   document.getElementById('sidehead').textContent = `Papers (${rows.length})`;
   document.getElementById('sidelist').innerHTML = rows.map(p=>{
     const st = status[p.rank];
-    const bg = st==='important'?'var(--important)':st==='further'?'var(--further)':st==='done'?'var(--done)':'var(--accent)';
-    const sub = ((p.app||[])[0]||'') + (p.venue? ' &middot; '+esc(p.venue):'');
+    const bg = st==='important'?'var(--important)':st==='further'?'var(--further)':st==='done'?'var(--done)':p.origin?'var(--pp)':'var(--accent)';
+    const sub = (p.origin?esc(p.origin)+' &middot; ':p.manual?'Manually added &middot; ':'') + ((p.app||[])[0]||'') + (p.venue? ' &middot; '+esc(p.venue):'');
     return `<li data-goto="${p.rank}"><span class="chip" style="background:${bg}">${p.rank}</span>
       <span><span class="s-title">${esc(p.title)}</span><br><span class="s-sub">${sub}</span></span></li>`;
   }).join('');

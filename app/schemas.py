@@ -22,7 +22,7 @@ it to render the self-contained ``literature-reviewer.html`` app.
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class Cluster(BaseModel):
@@ -63,6 +63,14 @@ class Tags(BaseModel):
 
     app: list[str] = Field(description="Application tags, e.g. ['Variant effect'].")
     method: list[str] = Field(description="Method tags, e.g. ['DNA language model'].")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _strip_keys(cls, data):
+        # Models occasionally emit " method" (leading space) for this key.
+        if isinstance(data, dict):
+            return {k.strip() if isinstance(k, str) else k: v for k, v in data.items()}
+        return data
 
 
 class Paper(BaseModel):
