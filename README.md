@@ -1,10 +1,13 @@
-# Literature Reviewer Agent
+# Paper Triage
 
-[![Server status](https://img.shields.io/website?url=https%3A%2F%2Fliterature-reviewer-4055136070.us-central1.run.app%2Fhealth&up_message=online&down_message=offline&label=server)](https://literature-reviewer-4055136070.us-central1.run.app/reviewer)
+[![Server status](https://img.shields.io/website?url=https%3A%2F%2Fliterature-reviewer-4055136070.us-central1.run.app%2Fhealth&up_message=online&down_message=offline&label=server)](https://literature-reviewer-4055136070.us-east1.run.app/reviewer)
 
-Literature review is often a daunting task. This concierge agent runs as a hosted web app on **Google Cloud Run** — point it at your field of interest (a CV, a seed paper, or a few keywords) and it returns a single ranked, structured review of the last ~12 months of papers in that field. It works for any field — the pipeline adapts to whatever you point it at. The public server generates reviews on **your own API key**, used per-request and never stored.
+Literature review is often a daunting task. Get some help from agents. 
 
-**Live server:** https://literature-reviewer-4055136070.us-central1.run.app/reviewer
+— Point it at your field of interest (a CV, a seed paper, or a few keywords) and 
+- Returns a single ranked, structured review of the last ~12 months of papers in that field. It works for any field — the pipeline adapts to whatever you point it at. The public server generates reviews on your own API key (never stored).
+
+**Live server:** https://literature-reviewer-4055136070.us-east1.run.app/reviewer
 
 ## Example output
 
@@ -14,15 +17,13 @@ The server renders your review as a single self-contained page — an interactiv
 
 ![Literature Reviewer — overall layout](docs/example-overview.png)
 
-<!-- **Paper card (detail)** — Aim → Main approach → Evaluation → Results (with quantitative task/data/metric/result bullets) → Limitation:
+**Paper card (detail)** — Aim → Main approach → Evaluation → Results (with quantitative task/data/metric/result bullets) → Limitation:
 
-![Literature Reviewer — paper card detail](docs/example-card.png) -->
+<img src="docs/example-card.png" alt="Paper Triage — paper card detail" width="560">
 
 See [`paper-review-SPEC.md`](paper-review-SPEC.md) for the complete specification of this output.
 
 ## Run or deploy your own server
-
-**Using the hosted app needs no setup** — open the live URL and paste your own model API key (Gemini, Anthropic, or OpenAI) in the interests panel; it is used per-request and never stored. Reviews are always generated on the caller's key, so the server holds no model credentials of its own.
 
 The page (titled **Paper Triage**) has an editable **researcher profile** under the title, used verbatim for the next review, and a setup panel in two blocks:
 
@@ -66,15 +67,11 @@ uv sync                                                          # install deps 
 uv run uvicorn app.fast_api_app:app --host 0.0.0.0 --port 8080
 ```
 
-### Deploy to Cloud Run
-
-On Cloud Run the credentials come from the service account automatically. `agents-cli deploy` (from the [Agents CLI](https://github.com/google/agents-cli): `uv tool install google-agents-cli`) builds the same container and ships it to **Google Cloud Run**. Infrastructure is Terraform under [`deployment/terraform/`](deployment/terraform/). See [`paper-review-SPEC.md`](paper-review-SPEC.md) for the full specification of the generated review app.
-
 ### Agent workflow
 
 ![1783389818754](image/README/agents_cli_graph.png)
 
-Generated with `agents-cli playground`. `root-agent` sequentially runs `scope_agent`, `research_fanout`, and `rank_agent`.
+(Generated with `agents-cli playground`)
 
 ## LangChain variant (`lc_app/`)
 
@@ -118,7 +115,8 @@ Generated with `graph.get_graph().draw_mermaid_png()`.
 - `deepen`: Fetch full text and analyze
 - `render`: Render the report
 
-## Model-agnostic by design
+## Model-agnostic
+The hosted BYO-key server supports Gemini, Anthropic, and OpenAI behind one `call_llm`. Users can also sign up for OpenRouter to use their OAuth based model access.
 
-Model choice is a **config knob** (`REVIEW_MODEL`), never chat input. A bare Gemini id runs ADK-native; a LiteLLM `provider/model` id (e.g. `anthropic/claude-sonnet-5`, `openai/gpt-4o`) routes through LiteLLM. The hosted BYO-key server supports Gemini, Anthropic, and OpenAI behind one `call_llm`, with loose/repairing JSON parsing so a truncated or fenced response still yields a valid review. Because search runs on keyless tools rather than provider-specific grounding, swapping models changes nothing downstream.
-
+## Contribution
+Contributions are welcome through GitHub Issue / Discussion / Pull Request.
