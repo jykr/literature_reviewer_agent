@@ -30,8 +30,8 @@ s3 = ["boto3>=1.35"]
 paper-sources-mcp = "paper_sources_mcp.server:main"
 
 [project.urls]
-Repository = "https://github.com/jykr/literature_reviewer_agent"
-Documentation = "https://github.com/jykr/literature_reviewer_agent/blob/main/docs/paper-sources-mcp.md"
+Repository = "https://github.com/jykr/paper_triage"
+Documentation = "https://github.com/jykr/paper_triage/blob/main/docs/paper-sources-mcp.md"
 
 [build-system]
 requires = ["hatchling"]

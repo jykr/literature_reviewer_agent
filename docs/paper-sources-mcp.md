@@ -24,8 +24,8 @@ Each paper record includes title, authors, venue and venue type, date, DOI/URL, 
 You need Python 3.11–3.13 and this repository. With [uv](https://docs.astral.sh/uv/), there's no separate install step: `uv run` creates the environment on first use.
 
 ```bash
-git clone https://github.com/jykr/literature_reviewer_agent.git
-cd literature_reviewer_agent
+git clone https://github.com/jykr/paper_triage.git
+cd paper_triage
 uv run paper-sources-mcp --help
 ```
 
@@ -37,7 +37,7 @@ pip install -e .
 paper-sources-mcp --help          # or: python -m paper_sources_mcp.server --help
 ```
 
-In the client examples below, replace `/path/to/literature_reviewer_agent` with your clone's absolute path. If you installed with pip, use the venv's executable instead: set `command` to `/path/to/literature_reviewer_agent/.venv/bin/paper-sources-mcp` with no `args`.
+In the client examples below, replace `/path/to/paper_triage` with your clone's absolute path. If you installed with pip, use the venv's executable instead: set `command` to `/path/to/paper_triage/.venv/bin/paper-sources-mcp` with no `args`.
 
 ## Optional configuration
 
@@ -65,14 +65,14 @@ HTTP modes bind to `127.0.0.1` by default. The server has **no authentication**,
 
 ## Connect a client
 
-Every stdio client needs the same three things: the **command** `uv`, the **args** `run --directory /path/to/literature_reviewer_agent paper-sources-mcp`, and optionally the **env** keys. Only the config file format differs.
+Every stdio client needs the same three things: the **command** `uv`, the **args** `run --directory /path/to/paper_triage paper-sources-mcp`, and optionally the **env** keys. Only the config file format differs.
 
 ### Claude Code
 
 ```bash
-claude mcp add paper-sources -- uv run --directory /path/to/literature_reviewer_agent paper-sources-mcp
+claude mcp add paper-sources -- uv run --directory /path/to/paper_triage paper-sources-mcp
 # with a key:
-claude mcp add paper-sources -e NCBI_API_KEY=... -- uv run --directory /path/to/literature_reviewer_agent paper-sources-mcp
+claude mcp add paper-sources -e NCBI_API_KEY=... -- uv run --directory /path/to/paper_triage paper-sources-mcp
 ```
 
 ### Claude Desktop
@@ -84,7 +84,7 @@ In `claude_desktop_config.json` (Settings → Developer → Edit Config), then r
   "mcpServers": {
     "paper-sources": {
       "command": "uv",
-      "args": ["run", "--directory", "/path/to/literature_reviewer_agent", "paper-sources-mcp"],
+      "args": ["run", "--directory", "/path/to/paper_triage", "paper-sources-mcp"],
       "env": { "NCBI_API_KEY": "optional", "UNPAYWALL_EMAIL": "you@example.org" }
     }
   }
@@ -107,7 +107,7 @@ The same `mcpServers` block as Claude Desktop goes in:
     "paper-sources": {
       "type": "stdio",
       "command": "uv",
-      "args": ["run", "--directory", "/path/to/literature_reviewer_agent", "paper-sources-mcp"]
+      "args": ["run", "--directory", "/path/to/paper_triage", "paper-sources-mcp"]
     }
   }
 }
@@ -122,7 +122,7 @@ The same `mcpServers` block as Claude Desktop goes in:
   "mcpServers": {
     "paper-sources": {
       "command": "uv",
-      "args": ["run", "--directory", "/path/to/literature_reviewer_agent", "paper-sources-mcp"]
+      "args": ["run", "--directory", "/path/to/paper_triage", "paper-sources-mcp"]
     }
   }
 }
@@ -135,7 +135,7 @@ The same `mcpServers` block as Claude Desktop goes in:
 ```toml
 [mcp_servers.paper-sources]
 command = "uv"
-args = ["run", "--directory", "/path/to/literature_reviewer_agent", "paper-sources-mcp"]
+args = ["run", "--directory", "/path/to/paper_triage", "paper-sources-mcp"]
 env = { NCBI_API_KEY = "optional" }
 ```
 
@@ -154,7 +154,7 @@ from mcp.client.stdio import stdio_client
 
 params = StdioServerParameters(
     command="uv",
-    args=["run", "--directory", "/path/to/literature_reviewer_agent", "paper-sources-mcp"],
+    args=["run", "--directory", "/path/to/paper_triage", "paper-sources-mcp"],
 )
 
 async def main():
@@ -179,7 +179,7 @@ from mcp import StdioServerParameters
 
 papers = McpToolset(connection_params=StdioConnectionParams(server_params=StdioServerParameters(
     command="uv",
-    args=["run", "--directory", "/path/to/literature_reviewer_agent", "paper-sources-mcp"],
+    args=["run", "--directory", "/path/to/paper_triage", "paper-sources-mcp"],
 )))
 agent = Agent(name="researcher", model="gemini-flash-latest", tools=[papers],
               instruction="Find recent papers with the paper-sources tools.")
@@ -194,7 +194,7 @@ from langchain_mcp_adapters.tools import load_mcp_tools
 client = MultiServerMCPClient({"papers": {
     "transport": "stdio",
     "command": "uv",
-    "args": ["run", "--directory", "/path/to/literature_reviewer_agent", "paper-sources-mcp"],
+    "args": ["run", "--directory", "/path/to/paper_triage", "paper-sources-mcp"],
 }})
 async with client.session("papers") as session:  # hold one session: one server process
     tools = await load_mcp_tools(session)
@@ -207,7 +207,7 @@ For HTTP mode, use `"transport": "streamable_http", "url": "http://127.0.0.1:876
 The [MCP Inspector](https://github.com/modelcontextprotocol/inspector) opens a web UI where you can call each tool by hand (it needs Node.js):
 
 ```bash
-npx @modelcontextprotocol/inspector uv run --directory /path/to/literature_reviewer_agent paper-sources-mcp
+npx @modelcontextprotocol/inspector uv run --directory /path/to/paper_triage paper-sources-mcp
 ```
 
 ## Notes

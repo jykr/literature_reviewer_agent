@@ -1,4 +1,4 @@
-To run your **own copy**, the server needs **Google Cloud credentials** — it calls `google.auth.default()` and initializes Cloud Logging at startup ([app/fast_api_app.py](app/fast_api_app.py)). Copy [`.env.example`](.env.example) to `.env`, then:
+To run your **own copy**, the server needs **Google Cloud credentials** — it calls `google.auth.default()` and initializes Cloud Logging at startup ([app/fast_api_app.py](../app/fast_api_app.py)). Copy [`.env.example`](../.env.example) to `.env`, then:
 
 1. `gcloud auth application-default login`
 2. set `GOOGLE_CLOUD_PROJECT` (and `GOOGLE_CLOUD_LOCATION=global`) in `.env`
@@ -7,7 +7,7 @@ No server-side model key is required for the public review endpoints. *(Only if 
 
 ### With Docker (recommended — reproducible)
 
-The repo ships a [`Dockerfile`](Dockerfile) pinning Python 3.12 + `uv` on port 8080 — no local Python/uv install needed. Docker packages the code and dependencies, but not your Google credentials, so mount them in:
+The repo ships a [`Dockerfile`](../Dockerfile) pinning Python 3.12 + `uv` on port 8080 — no local Python/uv install needed. Docker packages the code and dependencies, but not your Google credentials, so mount them in:
 
 ```bash
 docker build -t literature-reviewer .

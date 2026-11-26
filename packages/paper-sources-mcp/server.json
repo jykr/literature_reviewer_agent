@@ -4,7 +4,7 @@
   "title": "Paper Sources",
   "description": "Pooled paper search across OpenAlex, Europe PMC, PubMed, arXiv and bioRxiv, with full text.",
   "repository": {
-    "url": "https://github.com/jykr/literature_reviewer_agent",
+    "url": "https://github.com/jykr/paper_triage",
     "source": "github"
   },
   "version": "0.1.0",

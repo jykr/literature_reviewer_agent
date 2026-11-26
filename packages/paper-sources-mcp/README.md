@@ -41,7 +41,7 @@ Most clients take the same entry; this is Claude Desktop's `claude_desktop_confi
 - Codex CLI (`~/.codex/config.toml`): `[mcp_servers.paper-sources]` with `command = "uvx"` and `args = ["paper-sources-mcp"]`
 - Without uv: `pip install paper-sources-mcp`, then use `paper-sources-mcp` as the command.
 
-More clients, HTTP mode and agent-code examples (MCP SDK, Google ADK, LangChain): [full guide](https://github.com/jykr/literature_reviewer_agent/blob/main/docs/paper-sources-mcp.md).
+More clients, HTTP mode and agent-code examples (MCP SDK, Google ADK, LangChain): [full guide](https://github.com/jykr/paper_triage/blob/main/docs/paper-sources-mcp.md).
 
 ## Optional environment variables
 
@@ -57,6 +57,6 @@ Pass them through your client's `env` setting, or use `--env-file path/to/.env`.
 
 HTTP modes bind to `127.0.0.1` by default. The server has no authentication, so bind it publicly only behind your own access control.
 
-Part of [Paper Triage](https://github.com/jykr/literature_reviewer_agent), a literature-review agent.
+Part of [Paper Triage](https://github.com/jykr/paper_triage), a literature-review agent.
 
-MIT licensed. See [LICENSE](https://github.com/jykr/literature_reviewer_agent/blob/main/packages/paper-sources-mcp/LICENSE).
+MIT licensed. See [LICENSE](https://github.com/jykr/paper_triage/blob/main/packages/paper-sources-mcp/LICENSE).
